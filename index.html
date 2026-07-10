@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>업비트 원화마켓 개발 활성도 모니터</title>
 <!-- 세련된 현대적 폰트 적용 -->
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -276,8 +276,13 @@
     position: fixed;
     top: 0;
     left: 0;
+    right: 0;
+    bottom: 0;
     width: 100%;
+    width: 100vw;
     height: 100%;
+    height: 100vh;
+    height: -webkit-fill-available;
     background: rgba(4, 6, 10, 0.85); /* 반투명 어두운 배경 */
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
@@ -287,6 +292,7 @@
     justify-content: center;
     padding: 20px;
     box-sizing: border-box;
+    overflow: hidden;
   }
 
   /* 모달 카드형 본체 */
