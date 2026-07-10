@@ -1063,9 +1063,29 @@ function saveConfig() {
   pollAnomalyCheck();
 }
 
+// ---------- 타임아웃 지원 fetch 헬퍼 (기본 10초) ----------
+function fetchWithTimeout(url, options, timeoutMs) {
+  var limit = timeoutMs || 10000;
+  return new Promise(function (resolve, reject) {
+    var timer = setTimeout(function () {
+      reject(new Error("Request Timeout (" + limit + "ms): " + url));
+    }, limit);
+
+    fetch(url, options)
+      .then(function (res) {
+        clearTimeout(timer);
+        resolve(res);
+      })
+      .catch(function (err) {
+        clearTimeout(timer);
+        reject(err);
+      });
+  });
+}
+
 // ---------- 자동 폴백 fetch 함수 (CORS 극복) ----------
 function smartFetch(url) {
-  return fetch(url)
+  return fetchWithTimeout(url, null, 10000)
     .then(function (res) {
       if (res.status === 429) throw { status: 429, message: "RATE_LIMIT" };
       if (!res.ok) throw new Error("HTTP " + res.status);
@@ -1073,9 +1093,10 @@ function smartFetch(url) {
     })
     .catch(function (err) {
       if (err && err.message === "RATE_LIMIT") throw err;
+      if (err && err.message && err.message.indexOf("Timeout") !== -1) throw err; // 타임아웃 시 다음 프록시 시도 안 하고 즉각 기각
       console.warn("Direct fetch failed, trying corsproxy.io:", url);
       var proxy1 = "https://corsproxy.io/?url=" + encodeURIComponent(url);
-      return fetch(proxy1)
+      return fetchWithTimeout(proxy1, null, 10000)
         .then(function (res) {
           if (res.status === 429) throw { status: 429, message: "RATE_LIMIT" };
           if (!res.ok) throw new Error("Proxy1 HTTP " + res.status);
@@ -1083,9 +1104,10 @@ function smartFetch(url) {
         })
         .catch(function (err2) {
           if (err2 && err2.message === "RATE_LIMIT") throw err2;
+          if (err2 && err2.message && err2.message.indexOf("Timeout") !== -1) throw err2;
           console.warn("corsproxy.io failed, trying allorigins.win:", url);
           var proxy2 = "https://api.allorigins.win/raw?url=" + encodeURIComponent(url);
-          return fetch(proxy2)
+          return fetchWithTimeout(proxy2, null, 10000)
             .then(function (res) {
               if (res.status === 429) throw { status: 429, message: "RATE_LIMIT" };
               if (!res.ok) throw new Error("Proxy2 HTTP " + res.status);
@@ -1323,14 +1345,14 @@ function fetchBinanceTickers() {
   var url1 = "https://api.binance.com/api/v3/ticker/price";
   var url2 = "https://data-api.binance.vision/api/v3/ticker/price";
   
-  binanceTickersPromise = fetch(url1)
+  binanceTickersPromise = fetchWithTimeout(url1, null, 8000)
     .then(function (res) {
       if (!res.ok) throw new Error("Binance main api failed: " + res.status);
       return res.json();
     })
     .catch(function (err) {
       console.warn("Binance main API failed, trying fallback:", err);
-      return fetch(url2).then(function (res) {
+      return fetchWithTimeout(url2, null, 8000).then(function (res) {
         if (!res.ok) throw new Error("Binance fallback api failed: " + res.status);
         return res.json();
       });
@@ -1385,17 +1407,17 @@ function fetchAndRenderBinanceCompare(m) {
       var url24h2 = "https://data-api.binance.vision/api/v3/ticker/24hr?symbol=" + binanceSymbol;
       var urlFapi = "https://fapi.binance.com/futures/data/topLongShortAccountRatio?symbol=" + binanceSymbol + "&period=1d&limit=1";
 
-      var p24h = fetch(url24h1)
+      var p24h = fetchWithTimeout(url24h1, null, 8000)
         .then(function (res) {
           if (!res.ok) throw new Error();
           return res.json();
         })
         .catch(function () {
-          return fetch(url24h2).then(function (res) { return res.json(); });
+          return fetchWithTimeout(url24h2, null, 8000).then(function (res) { return res.json(); });
         })
         .catch(function () { return null; });
 
-      var pFapi = fetch(urlFapi)
+      var pFapi = fetchWithTimeout(urlFapi, null, 8000)
         .then(function (res) {
           if (!res.ok) throw new Error();
           return res.json();
@@ -1728,7 +1750,7 @@ function formatKoreanDate(dateStr) {
 // GitHub 최신 릴리스 연동
 function fetchGithubRelease(ownerRepo) {
   var url = "https://api.github.com/repos/" + ownerRepo + "/releases/latest";
-  return fetch(url)
+  return fetchWithTimeout(url, null, 10000)
     .then(function (res) {
       if (!res.ok) {
         if (res.status === 404) return null;
@@ -1779,11 +1801,11 @@ function fetchGithubData(ownerRepo) {
   var commitUrl = "https://api.github.com/repos/" + ownerRepo + "/commits?per_page=100";
   
   return Promise.all([
-    fetch(infoUrl).then(function(r) {
+    fetchWithTimeout(infoUrl, null, 10000).then(function(r) {
       if (!r.ok) throw new Error("GitHub Repo Status: " + r.status);
       return r.json();
     }),
-    fetch(commitUrl).then(function(r) {
+    fetchWithTimeout(commitUrl, null, 10000).then(function(r) {
       if (!r.ok) throw new Error("GitHub Commits Status: " + r.status);
       return r.json();
     })
