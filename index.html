@@ -426,7 +426,7 @@
   }
 
   /* 기본 스타일 (데스크톱) - 모바일 전용 요소를 숨김 */
-  .coin-symbol-mo, .rate-val, .badge-val, .volume-val {
+  .coin-symbol-mo, .rate-val, .badge-val, .volume-val, .premium-val-mo {
     display: none;
   }
   .mobile-sort-wrap {
@@ -528,11 +528,11 @@
       white-space: normal; /* 텍스트 줄바꿈 허용 */
       background: transparent !important;
     }
-    /* 2, 4, 6번째 열 숨김 */
-    tbody td:nth-child(2), tbody td:nth-child(4), tbody td:nth-child(6) {
+    /* 2, 4, 5, 7번째 열 숨김 (심볼, 전일대비, 프리미엄, 개발등급) */
+    tbody td:nth-child(2), tbody td:nth-child(4), tbody td:nth-child(5), tbody td:nth-child(7) {
       display: none !important;
     }
-    /* 1, 3, 5번째 열을 3열 분할 배치 */
+    /* 1, 3, 6번째 열을 3열 분할 배치 (코인명, 현재가, 거래대금) */
     tbody td:nth-child(1) {
       display: block !important;
       width: 38% !important;
@@ -543,7 +543,7 @@
       width: 32% !important;
       text-align: right;
     }
-    tbody td:nth-child(5) {
+    tbody td:nth-child(6) {
       display: block !important;
       width: 30% !important;
       text-align: right;
@@ -567,6 +567,11 @@
       font-size: 14px;
     }
     .rate-val {
+      display: block;
+      font-size: 11px;
+      margin-top: 2px;
+    }
+    .premium-val-mo {
       display: block;
       font-size: 11px;
       margin-top: 2px;
@@ -697,6 +702,8 @@
       <option value="acc_trade_price_24h_asc">거래대금 낮은순</option>
       <option value="signed_change_rate_desc">등락률 높은순</option>
       <option value="signed_change_rate_asc">등락률 낮은순</option>
+      <option value="binance_premium_desc">프리미엄 높은순</option>
+      <option value="binance_premium_asc">프리미엄 낮은순</option>
       <option value="korean_name_asc">코인명 가나다순</option>
       <option value="korean_name_desc">코인명 역순</option>
       <option value="symbol_asc">심볼 A-Z순</option>
@@ -717,6 +724,7 @@
           <th class="sortable" data-key="trade_price">현재가</th>
           <th class="sortable" data-key="signed_change_rate">전일대비</th>
           <th class="sortable" data-key="acc_trade_price_24h">거래대금(24H)</th>
+          <th class="sortable" data-key="binance_premium" title="USDT 환산 기준">바이낸스 대비</th>
           <th>개발 등급</th>
         </tr>
       </thead>
@@ -761,6 +769,7 @@ var LS_PAPRIKA_MAP_KEY = "paprika_map_v6";
 var LS_BINANCE_TICKERS_KEY = "binance_tickers_v6";
 var LS_FNG_KEY = "fng_v6";
 var TTL_PAPRIKA_MAP_MS = 7 * 24 * 3600 * 1000; // 파프리카 매핑 캐시 7일
+var TTL_BINANCE_TICKERS_MS = 60 * 1000;       // 바이낸스 티커 캐시 60초
 
 // 업비트 원화마켓 120여 개 상장 코인 전체 CoinGecko ID 정적 매핑
 var STATIC_MAP = {
@@ -951,6 +960,26 @@ function fmtMoVolume(v) {
   return Math.round(v).toLocaleString("ko-KR");
 }
 
+// 바이낸스 프리미엄 계산 유틸 (상세 모달과 동일 계산 로직)
+function getPremiumValue(m) {
+  var symbol = m.symbol.toUpperCase();
+  if (symbol === "USDT") return null;
+  if (!binanceTickers) return null;
+  var binancePrice = binanceTickers[symbol + "USDT"];
+  if (binancePrice == null) return null; // 미상장
+  
+  var t = tickerByMarket[m.market];
+  var upbitPrice = t ? t.trade_price : 0;
+  
+  var ut = tickerByMarket["KRW-USDT"];
+  var krwUsdtPrice = ut ? ut.trade_price : 1400; // 테더 시세 없으면 1400 폴백
+  
+  var binanceKrwPrice = binancePrice * krwUsdtPrice;
+  if (binanceKrwPrice <= 0) return null;
+  
+  return ((upbitPrice - binanceKrwPrice) / binanceKrwPrice) * 100;
+}
+
 // 한국어 글자 단위 포맷터 (12.3만 명, 1.2억 명 등)
 function fmtKoreanUnit(n) {
   if (n == null || isNaN(n) || n === 0) return null;
@@ -1110,7 +1139,7 @@ var binanceTickers = null;
 var binanceTickersPromise = null;
 
 function fetchBinanceTickers() {
-  var cached = lsGet(LS_BINANCE_TICKERS_KEY, 3600 * 1000); // 1시간 캐시
+  var cached = lsGet(LS_BINANCE_TICKERS_KEY, TTL_BINANCE_TICKERS_MS); // 60초 캐시
   if (cached) {
     binanceTickers = cached;
     binanceTickersPromise = null;
@@ -1347,6 +1376,13 @@ function getVisibleRows() {
       va = a.symbol;
       vb = b.symbol;
       return sortDesc ? vb.localeCompare(va, 'en') : va.localeCompare(vb, 'en');
+    } else if (sortKey === "binance_premium") {
+      var premiumA = getPremiumValue(a);
+      var premiumB = getPremiumValue(b);
+      if (premiumA === null && premiumB === null) return 0;
+      if (premiumA === null) return 1;
+      if (premiumB === null) return -1;
+      return sortDesc ? premiumB - premiumA : premiumA - premiumB;
     } else {
       var ta = tickerByMarket[a.market], tb = tickerByMarket[b.market];
       va = ta ? (ta[sortKey] || 0) : 0;
@@ -1384,6 +1420,30 @@ function renderTable() {
     var t = tickerByMarket[m.market];
     var rate = t ? t.signed_change_rate : null;
     var rateCls = rate > 0 ? "up" : (rate < 0 ? "down" : "");
+    
+    // 바이낸스 프리미엄 계산
+    var premium = getPremiumValue(m);
+    
+    // 데스크톱 프리미엄 td 구성
+    var premiumTd = "";
+    if (premium === null) {
+      premiumTd = '<td><span style="color: var(--text-sub); font-size:12.5px;">미상장</span></td>';
+    } else {
+      var premSign = premium >= 0 ? "+" : "";
+      var premCls = premium >= 0 ? "up" : "down";
+      premiumTd = '<td class="' + premCls + '">' + premSign + premium.toFixed(2) + '%</td>';
+    }
+    
+    // 모바일 프리미엄 span 구성
+    var premiumMoSpan = "";
+    if (premium === null) {
+      premiumMoSpan = '<span class="premium-val-mo" style="color: var(--text-sub);">바낸 미상장</span>';
+    } else {
+      var premSign = premium >= 0 ? "+" : "";
+      var premCls = premium >= 0 ? "up" : "down";
+      premiumMoSpan = '<span class="premium-val-mo ' + premCls + '">바낸 ' + premSign + premium.toFixed(1) + '%</span>';
+    }
+
     html += '<tr data-market="' + esc(m.market) + '"' +
       (m.market === selectedMarket ? ' class="selected"' : "") + ">" +
       "<td>" +
@@ -1397,6 +1457,7 @@ function renderTable() {
         '<div class="price-wrap">' +
           '<span class="price-val">' + (t ? fmtPrice(t.trade_price) : "-") + '</span>' +
           '<span class="rate-val ' + rateCls + '">' + (t ? fmtRate(rate) : "-") + '</span>' +
+          premiumMoSpan +
         '</div>' +
       "</td>" +
       '<td class="' + rateCls + '">' + (t ? fmtRate(rate) : "-") + "</td>" +
@@ -1406,10 +1467,11 @@ function renderTable() {
           '<span class="volume-val">' + (t ? fmtMoVolume(t.acc_trade_price_24h) : "-") + '</span>' +
         '</div>' +
       "</td>" +
+      premiumTd +
       "<td>" + badgeHtml(m.symbol) + "</td>" +
       "</tr>";
   }
-  if (!html) html = '<tr><td colspan="6" style="text-align:center; padding: 30px;">검색 결과가 없습니다.</td></tr>';
+  if (!html) html = '<tr><td colspan="7" style="text-align:center; padding: 30px;">검색 결과가 없습니다.</td></tr>';
   $("coinTbody").innerHTML = html;
   updateSortHeaders(); // 렌더링 시마다 지시자 최신화
 }
@@ -2114,22 +2176,47 @@ function kvRow(k, v) {
   return '<div class="kv"><span class="k">' + esc(k) + '</span><span class="v">' + v + '</span></div>';
 }
 
+// 바이낸스 시세 주기적 갱신용 헬퍼
+function refreshBinanceTickers() {
+  fetchBinanceTickers()
+    .then(function () {
+      renderTable();
+      updateSummaryStats();
+    })
+    .catch(function(e) {
+      console.warn("Failed to refresh Binance tickers in polling:", e);
+    });
+}
+
 // ---------- 초기화 ----------
 function init() {
   bindEvents();
   fetchFngIndex();
-  fetchBinanceTickers();
+  
+  // 바이낸스 전체 시세 최초 로드 후 목록 자동 갱신
+  fetchBinanceTickers()
+    .then(function() {
+      renderTable();
+    })
+    .catch(function(e) { 
+      console.warn("Initial binance tickers load failed:", e); 
+    });
+
   loadMarkets()
     .then(function () {
       renderTable();
       refreshTickers();
       setInterval(refreshTickers, TICKER_INTERVAL_MS);
+      
+      // 바이낸스 시세 60초 폴링 타이머 등록
+      setInterval(refreshBinanceTickers, 60000);
+      
       prefillGradesFromCache();
       // 백그라운드에서 파프리카 매핑 테이블 미리 로드
       ensurePaprikaMap().catch(function(e) { console.warn("Background Paprika mapping failed:", e); });
     })
     .catch(function () {
-      $("coinTbody").innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 40px; color: var(--up-red);">업비트 연동 오류. 네트워크 상태를 재확인하고 새로고침해 주세요.</td></tr>';
+      $("coinTbody").innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 40px; color: var(--up-red);">업비트 연동 오류. 네트워크 상태를 재확인하고 새로고침해 주세요.</td></tr>';
     });
 }
 init();
