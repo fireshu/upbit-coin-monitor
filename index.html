@@ -36,13 +36,19 @@
     min-height: 100vh;
     overflow-x: hidden;
     position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
   }
   
   .container {
     width: 100%;
     max-width: 1200px;
-    margin: 0 auto;
     position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
   }
 
   /* 네온 오로라 구체 백드롭 (Rich Aesthetics) */
@@ -534,8 +540,8 @@
 
   /* 반응형 모바일 대응 */
   @media (max-width: 768px) {
-    body { padding: 10px; width: 100% !important; margin: 0 !important; max-width: 100% !important; }
-    .container { width: 100% !important; max-width: 100% !important; padding: 0 !important; margin: 0 auto !important; }
+    body { padding: 10px; width: 100% !important; margin: 0 !important; max-width: 100% !important; align-items: center !important; }
+    .container { width: 100% !important; max-width: 100% !important; padding: 0 !important; margin: 0 auto !important; align-items: stretch !important; }
     .layout { display: block !important; width: 100% !important; }
     .table-wrap { width: 100% !important; margin: 0 !important; }
     .summary-grid { width: 100% !important; }
