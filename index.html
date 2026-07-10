@@ -637,11 +637,11 @@
       overflow: hidden;
       text-overflow: ellipsis;
     }
-    /* 2, 4, 5, 7번째 열 숨김 (심볼, 전일대비, 프리미엄, 개발등급) */
-    tbody td:nth-child(2), tbody td:nth-child(4), tbody td:nth-child(5), tbody td:nth-child(7) {
+    /* 2, 4, 6, 7번째 열 숨김 (심볼, 전일대비, 프리미엄 단독열, 개발등급 단독열) */
+    tbody td:nth-child(2), tbody td:nth-child(4), tbody td:nth-child(6), tbody td:nth-child(7) {
       display: none !important;
     }
-    /* 1, 3, 6번째 열을 3열 분할 배치 (코인명, 현재가, 거래대금) */
+    /* 1, 3, 5번째 열을 3열 분할 배치 (코인명, 현재가/등락률/김프, 개발등급/거래량) */
     tbody td:nth-child(1) {
       display: block !important;
       width: 38% !important;
@@ -649,12 +649,12 @@
     }
     tbody td:nth-child(3) {
       display: block !important;
-      width: 32% !important;
+      width: 34% !important;
       text-align: right;
     }
-    tbody td:nth-child(6) {
+    tbody td:nth-child(5) {
       display: block !important;
-      width: 30% !important;
+      width: 28% !important;
       text-align: right;
     }
     
@@ -915,6 +915,13 @@
       <input type="text" id="configApiInput" placeholder="http://localhost:5000" value="">
     </div>
     <button class="config-submit-btn" id="configSubmitBtn">저장 및 적용</button>
+    <div style="margin-top: 18px; padding: 12px; background: rgba(251, 191, 36, 0.05); border: 1px solid rgba(251, 191, 36, 0.25); border-radius: 8px; text-align: left;">
+      <h4 style="margin: 0 0 6px 0; font-size: 12px; color: #fbbf24; display: flex; align-items: center; gap: 4px;">⚠️ HTTPS 보안 연결 필수 안내</h4>
+      <p style="margin: 0; font-size: 11px; color: var(--text-sub); line-height: 1.5;">
+        현재 깃허브 배포 페이지(HTTPS)로 접속하신 경우, 보안 정책(Mixed Content)으로 인해 비보안 로컬 API(http://localhost:5000 등) 연결이 브라우저에서 자동 차단됩니다.<br>
+        모바일 연동 등 외부 연결을 원하시면, PC 터미널에서 <strong>ngrok http 5000</strong>을 구동하여 발급된 <strong>HTTPS 보안 주소</strong>(예: <code>https://xxxx.ngrok-free.app</code>)를 복사해서 이곳에 입력하고 저장해 주셔야 정상 작동합니다.
+      </p>
+    </div>
   </div>
 </div>
 
@@ -931,6 +938,22 @@
 // ---------- 상수 및 주소 ----------
 var defaultApiBase = window.location.protocol + "//" + window.location.hostname + ":5000";
 var API_BASE = localStorage.getItem("upbit_api_base") || defaultApiBase;
+var isBackendOnline = false;
+
+// 백엔드 서버 헬스체크 (CORS 및 HTTPS 통신가능 감지, 2.5초 제한)
+function checkBackendHealth() {
+  var checkUrl = API_BASE + "/api/anomaly-check";
+  return fetchWithTimeout(checkUrl, null, 2500)
+    .then(function (res) {
+      isBackendOnline = res.ok;
+      return isBackendOnline;
+    })
+    .catch(function () {
+      isBackendOnline = false;
+      return isBackendOnline;
+    });
+}
+
 var UPBIT_MARKET_ALL = "https://api.upbit.com/v1/market/all?isDetails=false";
 var UPBIT_TICKER = "https://api.upbit.com/v1/ticker?markets=";
 var CG_DETAIL = function (id) {
@@ -1116,6 +1139,7 @@ function saveConfig() {
   localStorage.setItem("upbit_api_base", val);
   alert("연결 주소가 저장 및 적용되었습니다: " + val);
   closeConfigModal();
+  checkBackendHealth(); // 저장 즉시 연결 테스트 가동
   refreshTickers();
   updateSummaryStats();
   pollAnomalyCheck();
@@ -2335,6 +2359,29 @@ function getAIOpinionSkeletonHtml() {
 }
 
 function triggerAIOpinionRequest(m, profile) {
+  // 선제 헬스체크 검사 결과 백엔드가 연결 불능 상태라면 45초 지연 대기하지 않고 즉각 Mixed Content / 오프라인 경고 노출
+  if (isBackendOnline === false) {
+    var isHttps = window.location.protocol === "https:";
+    var reason = "로컬 퀀트 서버(server.py)가 기동되지 않았습니다. PC의 터미널에서 server.py 실행 상태를 점검해 주십시오.";
+    if (isHttps) {
+      reason = "현재 보안 연결(HTTPS) 환경입니다. 브라우저 보안 정책(Mixed Content)으로 인해 비보안 로컬 API(http) 직접 연결이 차단됩니다. 모바일 기기 등에서 AI 결과를 보고 싶으시다면 [연결 설정]에 ngrok 등의 보안 HTTPS 주소를 연동해 주십시오.";
+    }
+    
+    var errorHtml = '<div class="ai-opinion-card" style="margin-top:18px; background:rgba(255, 74, 90, 0.05); border:1px solid rgba(255, 74, 90, 0.25); border-radius:12px; padding:16px;">' +
+                    '  <h3 style="margin:0; border-bottom:none; display:flex; justify-content:space-between; align-items:center; font-size:14px; color:var(--text-main); font-weight:700; padding-bottom: 0;">' +
+                    '    <span style="display:flex; align-items:center; gap:6px;">🧠 로컬 AI (Hermes-3) 분석 의견</span>' +
+                    '    <span class="badge g-dead" style="padding:2px 8px; font-size:10.5px;">오프라인 또는 차단됨</span>' +
+                    '  </h3>' +
+                    '  <p style="font-size:12.5px; line-height:1.6; color:#ff8a92; margin-top:8px;">' + reason + '</p>' +
+                    '</div>';
+    
+    var section = document.getElementById("aiOpinionSection");
+    if (section) {
+      section.innerHTML = errorHtml;
+    }
+    return;
+  }
+
   var changeRate = 0.0;
   var tickerKey = "KRW-" + m.symbol.toUpperCase();
   if (tickerByMarket[tickerKey]) {
@@ -2907,6 +2954,7 @@ function refreshBinanceTickers() {
 
 // ---------- 초기화 ----------
 function init() {
+  checkBackendHealth(); // 선제적 백엔드 헬스체크 기동
   bindEvents();
   fetchFngIndex();
   
