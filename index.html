@@ -36,6 +36,8 @@
     min-height: 100vh;
     overflow-x: hidden;
     position: relative;
+    max-width: 1200px;
+    margin: 0 auto !important;
   }
 
   /* 네온 오로라 구체 백드롭 (Rich Aesthetics) */
@@ -527,7 +529,10 @@
 
   /* 반응형 모바일 대응 */
   @media (max-width: 600px) {
-    body { padding: 10px; }
+    body { padding: 10px; width: 100% !important; margin: 0 auto !important; max-width: 100% !important; }
+    .layout { display: block !important; width: 100% !important; }
+    .table-wrap { width: 100% !important; margin: 0 !important; }
+    .summary-grid { width: 100% !important; }
     h1 { font-size: 18px; text-align: center; }
     #searchInput { width: 100%; }
     
