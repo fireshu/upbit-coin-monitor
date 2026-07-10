@@ -49,6 +49,7 @@
     display: flex;
     flex-direction: column;
     align-items: stretch;
+    overflow-x: clip;
   }
 
   /* 네온 오로라 구체 백드롭 (Rich Aesthetics) */
@@ -65,12 +66,12 @@
   .orb-1 {
     background: radial-gradient(circle, var(--accent) 0%, rgba(79, 124, 255, 0) 70%);
     top: -200px;
-    left: -150px;
+    left: 0;
   }
   .orb-2 {
     background: radial-gradient(circle, var(--accent-purple) 0%, rgba(168, 85, 247, 0) 70%);
     bottom: -200px;
-    right: -150px;
+    right: 0;
   }
 
   header {
