@@ -291,6 +291,98 @@
     box-sizing: border-box;
     box-shadow: var(--shadow-neon), 0 0 30px rgba(79, 124, 255, 0.15);
     animation: zoomIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none;    /* Firefox */
+  }
+  .modal-content::-webkit-scrollbar {
+    display: none;            /* Chrome, Safari, Opera */
+  }
+
+  /* 즐겨찾기 별 아이콘 스타일 */
+  .fav-star {
+    cursor: pointer;
+    font-size: 17px;
+    color: var(--text-sub);
+    margin-right: 8px;
+    transition: color 0.15s, transform 0.15s;
+    user-select: none;
+    display: inline-block;
+    vertical-align: middle;
+  }
+  .fav-star.active {
+    color: #fbbf24; /* 골드 색상 */
+    transform: scale(1.15);
+    text-shadow: 0 0 8px rgba(251, 191, 36, 0.4);
+  }
+  .fav-star:hover {
+    transform: scale(1.3);
+    color: #fbbf24;
+  }
+
+  /* 설정 톱니바퀴 버튼 스타일 */
+  .config-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-light);
+    color: var(--text-main);
+    padding: 8px 14px;
+    border-radius: 10px;
+    font-size: 13.5px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: background 0.15s, border-color 0.15s;
+    outline: none;
+    font-family: inherit;
+    font-weight: 500;
+  }
+  .config-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: var(--accent);
+  }
+
+  /* 설정 폼 스타일 */
+  .config-form-group {
+    margin-bottom: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    text-align: left;
+  }
+  .config-form-group label {
+    font-size: 13px;
+    color: var(--text-sub);
+    font-weight: 600;
+  }
+  .config-form-group input {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--border-light);
+    border-radius: 8px;
+    color: #fff;
+    padding: 10px 12px;
+    font-size: 13.5px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .config-form-group input:focus {
+    border-color: var(--accent);
+  }
+  .config-submit-btn {
+    width: 100%;
+    background: linear-gradient(135deg, var(--accent), var(--accent-purple));
+    border: none;
+    border-radius: 8px;
+    color: #fff;
+    padding: 11px;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(79, 124, 255, 0.2);
+    transition: opacity 0.2s;
+  }
+  .config-submit-btn:hover {
+    opacity: 0.9;
   }
 
   /* 닫기 X 버튼 (스크롤 시에도 우상단 고정) */
@@ -318,7 +410,7 @@
     margin-bottom: 6px;
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    gap: 10px;
     font-weight: 700;
   }
   .modal-content h3 {
@@ -494,9 +586,7 @@
     .summary-card .card-sub {
       font-size: 10px;
     }
-    .summary-grid .summary-card:nth-child(5) {
-      grid-column: span 2;
-    }
+    /* 6개 카드를 2열 3행으로 정렬하기 위해 span 2 제거 */
     
     /* 테이블 모바일 컴팩트 레이아웃 */
     .table-wrap {
@@ -647,7 +737,10 @@
 
 <header>
   <h1>업비트 원화마켓 개발·커뮤니티 대시보드</h1>
-  <div class="meta" id="statusText">시세 및 요약 정보를 구성하는 중...</div>
+  <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">
+    <div class="meta" id="statusText">시세 및 요약 정보를 구성하는 중...</div>
+    <button class="config-btn" id="configBtn">⚙️ 연결 설정</button>
+  </div>
 </header>
 
 <!-- 요약 통계 대시보드 (밋밋함 전면 해소) -->
@@ -690,6 +783,14 @@
       <div class="card-title">글로벌 공포·탐욕 지수</div>
       <div class="card-value" id="valFngValue">-</div>
       <div class="card-sub" id="valFngSub">데이터 로드 중...</div>
+    </div>
+  </div>
+  <div class="summary-card" id="cardFavorite">
+    <div class="card-icon" style="color: #fbbf24;">⭐</div>
+    <div>
+      <div class="card-title">즐겨찾는 코인</div>
+      <div class="card-value" id="valFavoriteCount">0 개</div>
+      <div class="card-sub">등록한 즐겨찾기 필터링</div>
     </div>
   </div>
 </div>
@@ -743,6 +844,22 @@
   </div>
 </div>
 
+<!-- API 서버 연결 설정 모달 -->
+<div id="configModalOverlay" class="modal-overlay" style="display: none;">
+  <div id="configModal" class="modal-content" style="max-width: 400px;">
+    <button id="configModalCloseBtn" class="modal-close-btn">&times;</button>
+    <h2>⚙️ API 서버 연결 설정</h2>
+    <p style="font-size: 12.5px; color: var(--text-sub); margin-bottom: 18px; line-height: 1.5; text-align: left;">
+      로컬 백엔드 서버(server.py) 또는 외부 프록시 서버의 도메인/IP 주소를 설정합니다. 기본 포트는 5000번입니다.
+    </p>
+    <div class="config-form-group">
+      <label for="configApiInput">API 서버 주소 (URL)</label>
+      <input type="text" id="configApiInput" placeholder="http://localhost:5000" value="">
+    </div>
+    <button class="config-submit-btn" id="configSubmitBtn">저장 및 적용</button>
+  </div>
+</div>
+
 <footer style="margin-top: 40px; text-align: center; font-size: 13px; color: var(--text-sub); padding: 20px 0; border-top: 1px solid var(--border-light);">
   본 사이트는 공개 API의 측정 데이터를 표시할 뿐이며 투자 권유가 아닙니다.
 </footer>
@@ -754,6 +871,8 @@
    ========================================================================== */
 
 // ---------- 상수 및 주소 ----------
+var defaultApiBase = window.location.protocol + "//" + window.location.hostname + ":5000";
+var API_BASE = localStorage.getItem("upbit_api_base") || defaultApiBase;
 var UPBIT_MARKET_ALL = "https://api.upbit.com/v1/market/all?isDetails=false";
 var UPBIT_TICKER = "https://api.upbit.com/v1/ticker?markets=";
 var CG_DETAIL = function (id) {
@@ -843,6 +962,7 @@ var tickerBusy = false;
 var detailSeq = 0;
 var paprikaMap = {};
 var paprikaPromise = null;
+var favorites = JSON.parse(localStorage.getItem("upbit_favorites") || "[]");
 
 // ---------- 공통 유틸 ----------
 function $(id) { return document.getElementById(id); }
@@ -851,6 +971,20 @@ function esc(s) {
   return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
     return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
   });
+}
+function toggleFavorite(marketCode, event) {
+  if (event) {
+    event.stopPropagation(); // 모달이 함께 뜨지 않도록 이벤트 전파 차단
+  }
+  var idx = favorites.indexOf(marketCode);
+  if (idx === -1) {
+    favorites.push(marketCode);
+  } else {
+    favorites.splice(idx, 1);
+  }
+  localStorage.setItem("upbit_favorites", JSON.stringify(favorites));
+  renderTable();
+  updateSummaryStats();
 }
 function nowStr() {
   var d = new Date();
@@ -883,6 +1017,7 @@ function clearError() { $("errorBanner").style.display = "none"; }
 function escCloseHandler(e) {
   if (e.key === "Escape") {
     closeModal();
+    closeConfigModal();
   }
 }
 function showModal() {
@@ -894,6 +1029,38 @@ function closeModal() {
   document.body.style.overflow = "";
   $("detailModalOverlay").style.display = "none";
   window.removeEventListener("keydown", escCloseHandler);
+}
+function openConfigModal() {
+  $("configApiInput").value = API_BASE;
+  document.body.style.overflow = "hidden";
+  $("configModalOverlay").style.display = "flex";
+  window.addEventListener("keydown", escCloseHandler);
+}
+function closeConfigModal() {
+  document.body.style.overflow = "";
+  $("configModalOverlay").style.display = "none";
+  window.removeEventListener("keydown", escCloseHandler);
+}
+function saveConfig() {
+  var val = $("configApiInput").value.trim();
+  if (!val) {
+    alert("API 서버 주소를 입력해 주십시오.");
+    return;
+  }
+  if (val.indexOf("http://") !== 0 && val.indexOf("https://") !== 0) {
+    alert("올바른 URL 형식(http:// 또는 https://로 시작)이어야 합니다.");
+    return;
+  }
+  if (val.slice(-1) === "/") {
+    val = val.slice(0, -1);
+  }
+  API_BASE = val;
+  localStorage.setItem("upbit_api_base", val);
+  alert("연결 주소가 저장 및 적용되었습니다: " + val);
+  closeConfigModal();
+  refreshTickers();
+  updateSummaryStats();
+  pollAnomalyCheck();
 }
 
 // ---------- 자동 폴백 fetch 함수 (CORS 극복) ----------
@@ -1053,6 +1220,11 @@ function updateSummaryStats() {
   } else {
     $("valHotName").textContent = "-";
     $("valHotCommits").textContent = "커밋 지표 집계 대기";
+  }
+
+  // 3) 즐겨찾는 코인 개수 업데이트
+  if ($("valFavoriteCount")) {
+    $("valFavoriteCount").textContent = favorites.length + " 개";
   }
 }
 
@@ -1357,14 +1529,73 @@ function refreshTickers() {
 }
 
 // ---------- 테이블 렌더링 ----------
+var currentFilterGrade = "all";
+
+function getHotProjectSymbol() {
+  var hotSym = "";
+  var hotCommits = 0;
+  for (var sym in gradeBySymbol) {
+    if (!gradeBySymbol.hasOwnProperty(sym)) continue;
+    var g = gradeBySymbol[sym];
+    if (g.commits > hotCommits) {
+      hotCommits = g.commits;
+      hotSym = sym;
+    }
+  }
+  return hotSym;
+}
+
+function updateActiveFilterCard() {
+  document.querySelectorAll(".summary-grid .summary-card").forEach(function(card) {
+    card.style.border = "1px solid var(--border-light)";
+    card.style.boxShadow = "none";
+  });
+  
+  var activeId = "";
+  if (currentFilterGrade === "all") activeId = "cardMarket";
+  else if (currentFilterGrade === "active") activeId = "cardActive";
+  else if (currentFilterGrade === "danger") activeId = "cardWarning";
+  else if (currentFilterGrade === "hot") activeId = "cardHot";
+  else if (currentFilterGrade === "favorite") activeId = "cardFavorite";
+  
+  var activeCard = document.getElementById(activeId);
+  if (activeCard) {
+    activeCard.style.border = "1px solid var(--accent)";
+    activeCard.style.boxShadow = "0 0 15px rgba(79, 124, 255, 0.15)";
+  }
+}
+
 function getVisibleRows() {
   var term = searchTerm.trim().toLowerCase();
   var rows = markets.filter(function (m) {
     if (m.symbol === "USDT") return false; // USDT는 시세 참고용이므로 목록에서 제외
-    if (!term) return true;
-    return m.korean_name.toLowerCase().indexOf(term) !== -1 ||
-      m.symbol.toLowerCase().indexOf(term) !== -1 ||
-      (m.english_name || "").toLowerCase().indexOf(term) !== -1;
+    
+    // 1) 검색어 필터
+    var matchTerm = true;
+    if (term) {
+      matchTerm = m.korean_name.toLowerCase().indexOf(term) !== -1 ||
+                  m.symbol.toLowerCase().indexOf(term) !== -1 ||
+                  (m.english_name || "").toLowerCase().indexOf(term) !== -1;
+    }
+    if (!matchTerm) return false;
+    
+    // 2) 요약 카드 필터
+    if (currentFilterGrade === "all") return true;
+    
+    var g = gradeBySymbol[m.symbol];
+    var cls = g ? g.cls : "g-unknown";
+    
+    if (currentFilterGrade === "active") {
+      return cls === "g-active" || cls === "g-normal";
+    } else if (currentFilterGrade === "danger") {
+      return cls === "g-stale" || cls === "g-dead";
+    } else if (currentFilterGrade === "hot") {
+      var hotSym = getHotProjectSymbol();
+      return m.symbol === hotSym;
+    } else if (currentFilterGrade === "favorite") {
+      return favorites.indexOf(m.market) !== -1;
+    }
+    return true;
   });
   rows.sort(function (a, b) {
     var va, vb;
@@ -1444,11 +1675,17 @@ function renderTable() {
       premiumMoSpan = '<span class="premium-val-mo ' + premCls + '">바낸 ' + premSign + premium.toFixed(1) + '%</span>';
     }
 
+    var isFav = favorites.indexOf(m.market) !== -1;
+    var favClass = isFav ? "fav-star active" : "fav-star";
+    var favChar = isFav ? "★" : "☆";
+    var favHtml = '<span class="' + favClass + '" onclick="toggleFavorite(\'' + esc(m.market) + '\', event)">' + favChar + '</span>';
+
     html += '<tr data-market="' + esc(m.market) + '"' +
       (m.market === selectedMarket ? ' class="selected"' : "") + ">" +
       "<td>" +
         '<div class="coin-name-wrap">' +
-          '<span class="coin-name-ko">' + esc(m.korean_name) + '</span>' +
+          favHtml +
+          '<span class="coin-name-ko" style="display:inline-block; vertical-align:middle;">' + esc(m.korean_name) + '</span>' +
           '<span class="coin-symbol-mo">' + esc(m.symbol) + '</span>' +
         '</div>' +
       "</td>" +
@@ -1713,6 +1950,57 @@ function prefillGradesFromCache() {
   updateSummaryStats();
 }
 
+function translateAndRenderProfile(m, profile, commit4w, grade, seq) {
+  var translatePayload = {
+    description: profile.description,
+    commits: profile.recent_commits ? profile.recent_commits.map(function(c) { return c.message; }) : []
+  };
+
+  fetch(API_BASE + '/api/translate-profile', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(translatePayload)
+  })
+  .then(function(res) { return res.json(); })
+  .then(function(transData) {
+    if (seq !== undefined && seq !== detailSeq) return;
+    
+    if (transData) {
+      if (transData.description) {
+        profile.description = transData.description;
+      }
+      if (transData.commits && Array.isArray(transData.commits) && profile.recent_commits) {
+        transData.commits.forEach(function(msg, idx) {
+          if (profile.recent_commits[idx]) {
+            profile.recent_commits[idx].message = msg;
+          }
+        });
+      }
+    }
+    profile.translated = true;
+    
+    // 캐시 저장
+    lsSet(LS_DETAIL_PREFIX + m.symbol, profile);
+    gradeBySymbol[m.symbol] = { cls: grade.cls, label: grade.label, commits: commit4w };
+    renderTable();
+    updateSummaryStats();
+    renderDetailPanel(m, profile);
+  })
+  .catch(function(err) {
+    console.warn("Translation API failed, rendering fallback to English:", err);
+    if (seq !== undefined && seq !== detailSeq) return;
+    
+    profile.translated = true;
+    
+    // 캐시 저장 (영어 상태로 폴백)
+    lsSet(LS_DETAIL_PREFIX + m.symbol, profile);
+    gradeBySymbol[m.symbol] = { cls: grade.cls, label: grade.label, commits: commit4w };
+    renderTable();
+    updateSummaryStats();
+    renderDetailPanel(m, profile);
+  });
+}
+
 function openDetail(marketCode) {
   var m = markets.find(function(x) { return x.market === marketCode; });
   if (!m) return;
@@ -1729,8 +2017,13 @@ function openDetail(marketCode) {
   // 캐시 확인
   var cached = lsGet(LS_DETAIL_PREFIX + m.symbol, TTL_DETAIL_MS);
   if (cached) {
-    renderDetailPanel(m, cached);
-    return;
+    if (cached.translated === true) {
+      renderDetailPanel(m, cached);
+      return;
+    } else {
+      translateAndRenderProfile(m, cached, cached.commits || 0, computeGradeFromCommits(cached.commits || 0), seq);
+      return;
+    }
   }
 
   // 데이터 소스 비동기 병렬 호출 파이프라인
@@ -1900,16 +2193,290 @@ function openDetail(marketCode) {
         cg_ath_change: cgAthChange
       };
 
-      // 캐시 저장
-      lsSet(LS_DETAIL_PREFIX + m.symbol, profile);
-      gradeBySymbol[m.symbol] = { cls: grade.cls, label: grade.label, commits: commit4w };
-      renderTable();
-      updateSummaryStats();
-      renderDetailPanel(m, profile);
+      translateAndRenderProfile(m, profile, commit4w, grade, seq);
     })
     .catch(function(err) {
       if (seq !== detailSeq) return;
       handleCgFail(m, err);
+    });
+}
+
+// 백테스터 UI 마크업 헬퍼
+function getBacktestPanelHtml() {
+  return '<h3>⚡ cuDF 가속 백테스터 시뮬레이션</h3>' +
+         '<div class="backtest-panel" style="background:rgba(21, 26, 38, 0.4); border:1px solid var(--border-light); border-radius:12px; padding:16px; margin-bottom:18px; box-shadow:0 0 10px rgba(79, 124, 255, 0.05);">' +
+         '  <div style="display:flex; gap:12px; margin-bottom:12px; align-items:center; flex-wrap:wrap;">' +
+         '    <div style="flex:1; min-width:80px;">' +
+         '      <label style="font-size:11px; color:var(--text-sub); display:block; margin-bottom:4px;">RSI 기간</label>' +
+         '      <input type="number" id="btRsiPeriod" value="14" style="width:100%; background:rgba(0,0,0,0.3); border:1px solid var(--border-light); border-radius:6px; color:#fff; padding:6px; font-size:12px; text-align:center;">' +
+         '    </div>' +
+         '    <div style="flex:1; min-width:80px;">' +
+         '      <label style="font-size:11px; color:var(--text-sub); display:block; margin-bottom:4px;">매수 RSI 기준</label>' +
+         '      <input type="number" id="btRsiBuy" value="30" style="width:100%; background:rgba(0,0,0,0.3); border:1px solid var(--border-light); border-radius:6px; color:#fff; padding:6px; font-size:12px; text-align:center;">' +
+         '    </div>' +
+         '    <div style="flex:1; min-width:80px;">' +
+         '      <label style="font-size:11px; color:var(--text-sub); display:block; margin-bottom:4px;">매도 RSI 기준</label>' +
+         '      <input type="number" id="btRsiSell" value="70" style="width:100%; background:rgba(0,0,0,0.3); border:1px solid var(--border-light); border-radius:6px; color:#fff; padding:6px; font-size:12px; text-align:center;">' +
+         '    </div>' +
+         '  </div>' +
+         '  <button onclick="runLiveBacktest()" style="width:100%; background:linear-gradient(135deg, var(--accent), var(--accent-purple)); border:none; border-radius:8px; color:#fff; padding:10px; font-weight:600; font-size:13px; cursor:pointer; box-shadow:0 4px 15px rgba(79, 124, 255, 0.3); transition:all 0.2s;">' +
+         '    백테스트 실행 (cuDF GPU 가속)' +
+         '  </button>' +
+         '  <div id="backtestResultArea" style="margin-top:12px; display:none;">' +
+         '    <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; text-align:center; margin-top:8px;">' +
+         '      <div style="background:rgba(255,255,255,0.03); border:1px solid var(--border-light); border-radius:8px; padding:8px;">' +
+         '        <div style="font-size:10px; color:var(--text-sub);">총 수익률</div>' +
+         '        <div id="btResultReturn" style="font-size:13px; font-weight:700; color:#4ade80; margin-top:4px;">0.0%</div>' +
+         '      </div>' +
+         '      <div style="background:rgba(255,255,255,0.03); border:1px solid var(--border-light); border-radius:8px; padding:8px;">' +
+         '        <div style="font-size:10px; color:var(--text-sub);">최대 낙폭(MDD)</div>' +
+         '        <div id="btResultMdd" style="font-size:13px; font-weight:700; color:var(--up-red); margin-top:4px;">0.0%</div>' +
+         '      </div>' +
+         '      <div style="background:rgba(255,255,255,0.03); border:1px solid var(--border-light); border-radius:8px; padding:8px;">' +
+         '        <div style="font-size:10px; color:var(--text-sub);">거래 횟수</div>' +
+         '        <div id="btResultTrades" style="font-size:13px; font-weight:700; color:var(--accent); margin-top:4px;">0회</div>' +
+         '      </div>' +
+         '    </div>' +
+         '  </div>' +
+         '</div>';
+}
+
+// AI 오피니언 영역 렌더링 헬퍼 (로딩 스켈레톤 포함)
+function getAIOpinionSkeletonHtml() {
+  return '<div id="aiOpinionSection" style="margin-top:18px;">' +
+         '  <div class="ai-opinion-card" style="margin-top:18px; background:rgba(168, 85, 247, 0.03); border:1px dashed rgba(168, 85, 247, 0.25); border-radius:12px; padding:16px; position:relative; overflow:hidden;">' +
+         '    <h3 style="margin:0; border-bottom:none; display:flex; justify-content:space-between; align-items:center; font-size:14px; color:var(--text-main); font-weight:700; padding-bottom: 0;">' +
+         '      <span style="display:flex; align-items:center; gap:6px;">🧠 로컬 AI (Hermes-3) 분석 의견</span>' +
+         '      <span class="badge g-active pulse" style="padding:2px 8px; font-size:10.5px;">로딩 중...</span>' +
+         '    </h3>' +
+         '    <p style="font-size:12.5px; line-height:1.6; color:var(--text-sub); margin-top:8px;" class="pulse">로컬 AI 모델이 개발 통계 및 시세를 정밀 분석 중입니다. 모델 최초 로드 및 사양에 따라 약 10~40초 이상 소요될 수 있습니다...</p>' +
+         '  </div>' +
+         '</div>';
+}
+
+function triggerAIOpinionRequest(m, profile) {
+  var changeRate = 0.0;
+  var tickerKey = "KRW-" + m.symbol.toUpperCase();
+  if (tickerByMarket[tickerKey]) {
+    changeRate = parseFloat(tickerByMarket[tickerKey].signed_change_rate) * 100;
+  }
+  
+  var payload = {
+    name: m.korean_name,
+    symbol: m.symbol,
+    stars: profile.stars || 0,
+    commits: profile.commits || 0,
+    change_rate: changeRate,
+    recent_commits: profile.recent_commits || [],
+    latest_release: profile.latest_release || null,
+    description: profile.description || ""
+  };
+
+  var controller = new AbortController();
+  var timeoutId = setTimeout(function() {
+    controller.abort();
+  }, 45000);
+  
+  // AI 의견 다이내믹 3단 카드 파싱 및 럭셔리 렌더링 헬퍼 (정규식 기반 고도화)
+  function parseAndRenderAIOpinion(opinionText, isMeme) {
+    var raw = opinionText || "";
+    
+    var match2 = raw.match(/(?:2\s*\.\s*|📈|주요\s*호재|호재\s*소식|긍정\s*요소|Bullish)/i);
+    var idx2 = match2 ? match2.index : -1;
+    
+    var match3 = raw.match(/(?:3\s*\.\s*|📉|주요\s*악재|악재\s*소식|위험\s*요소|Bearish|리스크|경고)/i);
+    var idx3 = match3 ? match3.index : -1;
+    
+    var part1 = "";
+    var part2 = "";
+    var part3 = "";
+    
+    if (idx2 !== -1 && idx3 !== -1 && idx2 < idx3) {
+      part1 = raw.substring(0, idx2).trim();
+      part2 = raw.substring(idx2, idx3).trim();
+      part3 = raw.substring(idx3).trim();
+    } else if (idx2 !== -1 && idx3 === -1) {
+      part1 = raw.substring(0, idx2).trim();
+      part2 = raw.substring(idx2).trim();
+    } else if (idx3 !== -1 && idx2 === -1) {
+      part1 = raw.substring(0, idx3).trim();
+      part3 = raw.substring(idx3).trim();
+    } else {
+      part1 = raw;
+    }
+    
+    function clean(txt) {
+      var cleanTxt = txt.replace(/^[\s\-\*•]*\d*\.?\s*(🧠|📈|📉)?\s*(로컬\s*AI\s*)?(종합\s*의견|종합\s*진단|주요\s*호재|호재\s*소식|긍정\s*요소|주요\s*악재|악재\s*소식|악재\s*리스크|위험\s*요소|Bearish|Bullish|리스크|경고|호재|악재)\s*\(?[a-zA-Z]*\)?\s*(및\s*새로운\s*소식|및\s*리스크)?\s*[:：\-\s]*/i, "");
+      return esc(cleanTxt).replace(/\n/g, '<br>');
+    }
+    
+    var badgeClass = isMeme ? "g-dead" : "g-active";
+    var badgeLabel = isMeme ? "판정 완료 (L0)" : "추론 완료 (Hermes)";
+    var html = "";
+    
+    if (part1) {
+      html += '<div class="ai-opinion-card" style="margin-top:18px; background:rgba(168, 85, 247, 0.04); border:1px solid rgba(168, 85, 247, 0.25); border-radius:12px; padding:16px; position:relative; overflow:hidden; box-shadow:0 0 15px rgba(168, 85, 247, 0.05); z-index: 1;">' +
+              '  <div class="ai-card-glow-orb" style="position:absolute; width:120px; height:120px; border-radius:50%; background:rgba(168, 85, 247, 0.2); filter:blur(40px); top:-40px; right:-40px; pointer-events:none; z-index:0;"></div>' +
+              '  <h3 style="margin:0; border-bottom:none; display:flex; justify-content:space-between; align-items:center; z-index:1; position:relative; font-size:14px; color:var(--text-main); font-weight:700; gap:8px; padding-bottom: 0;">' +
+              '    <span style="display:flex; align-items:center; gap:6px;">🧠 로컬 AI 종합 진단</span>' +
+              '    <span class="badge ' + badgeClass + '" style="padding:2px 8px; font-size:10.5px;">' + badgeLabel + '</span>' +
+              '  </h3>' +
+              '  <p style="font-size:12.5px; line-height:1.6; color:#d2d9e6; z-index:1; position:relative; margin-top:8px;">' + clean(part1) + '</p>' +
+              '</div>';
+    }
+    
+    if (part2) {
+      html += '<div class="ai-opinion-card" style="margin-top:12px; background:rgba(74, 222, 128, 0.03); border:1px solid rgba(74, 222, 128, 0.2); border-radius:12px; padding:16px; position:relative; overflow:hidden; box-shadow:0 0 15px rgba(74, 222, 128, 0.05); z-index: 1;">' +
+              '  <div class="ai-card-glow-orb" style="position:absolute; width:120px; height:120px; border-radius:50%; background:rgba(74, 222, 128, 0.15); filter:blur(40px); top:-40px; right:-40px; pointer-events:none; z-index:0;"></div>' +
+              '  <h3 style="margin:0; border-bottom:none; display:flex; justify-content:space-between; align-items:center; z-index:1; position:relative; font-size:14px; color:#4ade80; font-weight:700; gap:8px; padding-bottom: 0;">' +
+              '    <span style="display:flex; align-items:center; gap:6px;">📈 최근 뉴스 및 주요 호재 소식</span>' +
+              '  </h3>' +
+              '  <p style="font-size:12.5px; line-height:1.6; color:#e2e8f0; z-index:1; position:relative; margin-top:8px;">' + clean(part2) + '</p>' +
+              '</div>';
+    }
+    
+    if (part3) {
+      html += '<div class="ai-opinion-card" style="margin-top:12px; background:rgba(255, 74, 90, 0.03); border:1px solid rgba(255, 74, 90, 0.2); border-radius:12px; padding:16px; position:relative; overflow:hidden; box-shadow:0 0 15px rgba(255, 74, 90, 0.05); z-index: 1;">' +
+              '  <div class="ai-card-glow-orb" style="position:absolute; width:120px; height:120px; border-radius:50%; background:rgba(255, 74, 90, 0.15); filter:blur(40px); top:-40px; right:-40px; pointer-events:none; z-index:0;"></div>' +
+              '  <h3 style="margin:0; border-bottom:none; display:flex; justify-content:space-between; align-items:center; z-index:1; position:relative; font-size:14px; color:var(--up-red); font-weight:700; gap:8px; padding-bottom: 0;">' +
+              '    <span style="display:flex; align-items:center; gap:6px;">📉 주의 뉴스 및 잠재 악재 리스크</span>' +
+              '  </h3>' +
+              '  <p style="font-size:12.5px; line-height:1.6; color:#fecaca; z-index:1; position:relative; margin-top:8px;">' + clean(part3) + '</p>' +
+              '</div>';
+    }
+    
+    return html;
+  }
+
+  fetch(API_BASE + '/api/ai-opinion', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+    signal: controller.signal
+  })
+  .then(function(res) {
+    clearTimeout(timeoutId);
+    return res.json();
+  })
+  .then(function(data) {
+    var isMeme = (profile.stars || 0) === 0 && (profile.commits || 0) === 0;
+    var html = parseAndRenderAIOpinion(data.opinion, isMeme);
+    var section = document.getElementById("aiOpinionSection");
+    if (section) {
+      section.innerHTML = html;
+    }
+  })
+  .catch(function(err) {
+    clearTimeout(timeoutId);
+    var errMsg = "로컬 퀀트 서버(server.py)와 연결을 실패하여 실시간 Hermes-3 오피니언을 로드하지 못했습니다.";
+    if (err.name === 'AbortError') {
+      errMsg = "로컬 AI 추론 응답 대기 시간(45초)을 초과했습니다. Ollama의 Hermes-3 기동 상태 및 사양을 점검해 주십시오.";
+    }
+    var errorHtml = '<div class="ai-opinion-card" style="margin-top:18px; background:rgba(255, 74, 90, 0.05); border:1px solid rgba(255, 74, 90, 0.25); border-radius:12px; padding:16px;">' +
+                    '  <h3 style="margin:0; border-bottom:none; display:flex; justify-content:space-between; align-items:center; font-size:14px; color:var(--text-main); font-weight:700; padding-bottom: 0;">' +
+                    '    <span style="display:flex; align-items:center; gap:6px;">🧠 로컬 AI (Hermes-3) 분석 의견</span>' +
+                    '    <span class="badge g-dead" style="padding:2px 8px; font-size:10.5px;">추론 지연 또는 실패</span>' +
+                    '  </h3>' +
+                    '  <p style="font-size:12.5px; line-height:1.6; color:#ff8a92; margin-top:8px;">' + errMsg + '</p>' +
+                    '</div>';
+    var section = document.getElementById("aiOpinionSection");
+    if (section) {
+      section.innerHTML = errorHtml;
+    }
+  });
+}
+
+function runLiveBacktest() {
+  var rsiPeriod = parseInt(document.getElementById("btRsiPeriod").value) || 14;
+  var rsiBuy = parseInt(document.getElementById("btRsiBuy").value) || 30;
+  var rsiSell = parseInt(document.getElementById("btRsiSell").value) || 70;
+  
+  var btn = document.querySelector(".backtest-panel button");
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = "시뮬레이션 가동 중 (cuDF 가속)...";
+  }
+  
+  fetch(API_BASE + '/api/backtest', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ rsi_period: rsiPeriod, rsi_buy: rsiBuy, rsi_sell: rsiSell })
+  })
+  .then(function(res) { return res.json(); })
+  .then(function(data) {
+    document.getElementById("backtestResultArea").style.display = "block";
+    
+    var color = data.total_return >= 0 ? "#4ade80" : "#ff4a5a";
+    var sign = data.total_return >= 0 ? "+" : "";
+    
+    document.getElementById("btResultReturn").innerHTML = sign + data.total_return + "%";
+    document.getElementById("btResultReturn").style.color = color;
+    document.getElementById("btResultMdd").innerHTML = data.mdd + "%";
+    document.getElementById("btResultTrades").innerHTML = data.trades_count + "회";
+    
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = "백테스트 실행 (cuDF GPU 가속)";
+    }
+  })
+  .catch(function(err) {
+    alert("로컬 퀀트 서버(server.py) 통신 실패. 서버 실행 상태를 검사하십시오.");
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = "백테스트 실행 (cuDF GPU 가속)";
+    }
+  });
+}
+
+// AI 가격 이상 탐지 (Anomaly Detection) 폴링 연동
+function pollAnomalyCheck() {
+  fetch(API_BASE + '/api/anomaly-check')
+    .then(function(res) { return res.json(); })
+    .then(function(data) {
+      var badge = document.getElementById("anomalyAlertBadge");
+      if (!badge) return;
+      var indicator = badge.querySelector(".status-indicator");
+      var textSpan = badge.querySelector(".alert-text");
+      
+      if (data.status === "ANOMALY") {
+        badge.classList.add("alert-anomaly");
+        if (textSpan) {
+          textSpan.innerHTML = "🚨 AI 감지: " + esc(data.message);
+          textSpan.style.color = "var(--up-red)";
+        }
+      } else if (data.status === "NORMAL") {
+        badge.classList.remove("alert-anomaly");
+        if (textSpan) {
+          textSpan.innerHTML = "🟢 시장 상황 안정 (" + esc(data.message) + ")";
+          textSpan.style.color = "var(--text-main)";
+        }
+        if (indicator) {
+          indicator.style.background = "var(--accent)";
+          indicator.style.boxShadow = "0 0 8px var(--accent)";
+        }
+      } else {
+        badge.classList.remove("alert-anomaly");
+        if (textSpan) {
+          textSpan.innerHTML = "🔍 " + esc(data.message);
+          textSpan.style.color = "var(--text-sub)";
+        }
+        if (indicator) {
+          indicator.style.background = "var(--text-sub)";
+          indicator.style.boxShadow = "0 0 8px var(--text-sub)";
+        }
+      }
+    })
+    .catch(function(err) {
+      console.warn("Anomaly check fail:", err);
+      var badge = document.getElementById("anomalyAlertBadge");
+      if (badge) {
+        badge.classList.remove("alert-anomaly");
+        var textSpan = badge.querySelector(".alert-text");
+        if (textSpan) {
+          textSpan.innerHTML = "⚠️ 이상 신호 서버 연결 실패";
+          textSpan.style.color = "var(--text-sub)";
+        }
+      }
     });
 }
 
@@ -2081,11 +2648,17 @@ function renderDetailPanel(m, profile) {
   html += '<a href="https://api.upbit.com/v1/market/all" target="_blank" rel="noopener">📈 Upbit API</a>';
   html += "</div>";
 
+  // 로컬 AI 의견 카드 껍데기 바인딩 (백테스터 시뮬레이션 제거 반영)
+  html += getAIOpinionSkeletonHtml();
+
   $("detailModalBody").innerHTML = html;
   showModal();
 
   // 바이낸스 실시간 비교 렌더링 호출
   fetchAndRenderBinanceCompare(m);
+  
+  // 로컬 AI 의견 비동기 요청 시작
+  triggerAIOpinionRequest(m, profile);
 }
 
 function setNoDataPanel(m, reason) {
@@ -2093,6 +2666,9 @@ function setNoDataPanel(m, reason) {
   renderTable();
   updateSummaryStats();
   
+  var mockProfile = { stars: 0, commits: 0 };
+  var aiOpinionSkeletonHtml = getAIOpinionSkeletonHtml();
+
   $("detailModalBody").innerHTML = "<h2>" + esc(m.korean_name) + " (" + esc(m.symbol) + ") " +
     '<span class="badge g-none">데이터 없음</span></h2>' +
     '<div class="desc-box" style="margin-top: 14px; background: rgba(255, 74, 90, 0.05); border: 1px solid rgba(255, 74, 90, 0.2); color: #ff8a92;">' +
@@ -2103,12 +2679,16 @@ function setNoDataPanel(m, reason) {
     '  <h3>바이낸스 비교</h3>' +
     '  <div class="panel-msg" style="padding: 10px 0;">바이낸스 실시간 정보 로딩 중...</div>' +
     '</div>' +
+    aiOpinionSkeletonHtml +
     '<h3 style="margin-top:14px;">공식 아웃링크</h3><div class="links">' +
     '  <a href="https://news.google.com/search?q=' + encodeURIComponent(m.korean_name) + '+코인&hl=ko" target="_blank" rel="noopener">📰 Google 뉴스 검색</a>' +
     '  <a href="https://news.google.com/search?q=' + encodeURIComponent(m.english_name || m.symbol) + '+crypto&hl=en-US&gl=US&ceid=US:en" target="_blank" rel="noopener">📰 영문 뉴스 검색 ↗</a>' +
     '</div>';
   showModal();
   fetchAndRenderBinanceCompare(m);
+  
+  // 로컬 AI 의견 비동기 요청 시작
+  triggerAIOpinionRequest(m, mockProfile);
 }
 
 function handleCgFail(m, err) {
@@ -2127,6 +2707,53 @@ function bindEvents() {
     searchTerm = e.target.value;
     renderTable();
   });
+  
+  // 요약 카드 클릭 필터 이벤트 바인딩
+  var cardMarket = document.getElementById("cardMarket");
+  if (cardMarket) {
+    cardMarket.addEventListener("click", function () {
+      currentFilterGrade = "all";
+      updateActiveFilterCard();
+      renderTable();
+    });
+    cardMarket.style.cursor = "pointer";
+  }
+  var cardActive = document.getElementById("cardActive");
+  if (cardActive) {
+    cardActive.addEventListener("click", function () {
+      currentFilterGrade = "active";
+      updateActiveFilterCard();
+      renderTable();
+    });
+    cardActive.style.cursor = "pointer";
+  }
+  var cardWarning = document.getElementById("cardWarning");
+  if (cardWarning) {
+    cardWarning.addEventListener("click", function () {
+      currentFilterGrade = "danger";
+      updateActiveFilterCard();
+      renderTable();
+    });
+    cardWarning.style.cursor = "pointer";
+  }
+  var cardHot = document.getElementById("cardHot");
+  if (cardHot) {
+    cardHot.addEventListener("click", function () {
+      currentFilterGrade = "hot";
+      updateActiveFilterCard();
+      renderTable();
+    });
+    cardHot.style.cursor = "pointer";
+  }
+  var cardFavorite = document.getElementById("cardFavorite");
+  if (cardFavorite) {
+    cardFavorite.addEventListener("click", function () {
+      currentFilterGrade = "favorite";
+      updateActiveFilterCard();
+      renderTable();
+    });
+    cardFavorite.style.cursor = "pointer";
+  }
   
   // 모바일 정렬 드롭다운 이벤트 연동
   var mobSel = $("mobileSortSelect");
@@ -2170,6 +2797,16 @@ function bindEvents() {
       closeModal();
     }
   });
+
+  // 설정 모달 이벤트 바인딩
+  $("configBtn").addEventListener("click", openConfigModal);
+  $("configModalCloseBtn").addEventListener("click", closeConfigModal);
+  $("configModalOverlay").addEventListener("click", function (e) {
+    if (e.target === $("configModalOverlay")) {
+      closeConfigModal();
+    }
+  });
+  $("configSubmitBtn").addEventListener("click", saveConfig);
 }
 
 function kvRow(k, v) {
@@ -2192,6 +2829,10 @@ function refreshBinanceTickers() {
 function init() {
   bindEvents();
   fetchFngIndex();
+  
+  // 실시간 이상 탐지 최초 기동 및 20초 주기 폴링 등록
+  pollAnomalyCheck();
+  setInterval(pollAnomalyCheck, 20000);
   
   // 바이낸스 전체 시세 최초 로드 후 목록 자동 갱신
   fetchBinanceTickers()
