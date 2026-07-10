@@ -491,6 +491,14 @@
       <div class="card-sub" id="valHotCommits">-</div>
     </div>
   </div>
+  <div class="summary-card" id="cardFng">
+    <div class="card-icon" id="valFngIcon">🔍</div>
+    <div>
+      <div class="card-title">글로벌 공포·탐욕 지수</div>
+      <div class="card-value" id="valFngValue">-</div>
+      <div class="card-sub" id="valFngSub">데이터 로드 중...</div>
+    </div>
+  </div>
 </div>
 
 <div class="toolbar">
@@ -527,6 +535,10 @@
   </div>
 </div>
 
+<footer style="margin-top: 40px; text-align: center; font-size: 13px; color: var(--text-sub); padding: 20px 0; border-top: 1px solid var(--border-light);">
+  본 사이트는 공개 API의 측정 데이터를 표시할 뿐이며 투자 권유가 아닙니다.
+</footer>
+
 <script>
 "use strict";
 /* ==========================================================================
@@ -538,14 +550,16 @@ var UPBIT_MARKET_ALL = "https://api.upbit.com/v1/market/all?isDetails=false";
 var UPBIT_TICKER = "https://api.upbit.com/v1/ticker?markets=";
 var CG_DETAIL = function (id) {
   return "https://api.coingecko.com/api/v3/coins/" + encodeURIComponent(id) +
-    "?developer_data=true&community_data=true&market_data=false&tickers=false&localization=false";
+    "?developer_data=true&community_data=true&market_data=true&tickers=false&localization=false";
 };
 var TICKER_INTERVAL_MS = 10000;         // 시세 10초 갱신
 var TTL_DETAIL_MS = 12 * 3600 * 1000;    // 상세 캐시 12시간
 var TTL_MARKETS_MS = 24 * 3600 * 1000;  // 업비트 마켓 목록 캐시 24시간
-var LS_MARKETS_KEY = "upbit_markets_v5";
-var LS_DETAIL_PREFIX = "cg_detail_v5_";
-var LS_PAPRIKA_MAP_KEY = "paprika_map_v5";
+var LS_MARKETS_KEY = "upbit_markets_v6";
+var LS_DETAIL_PREFIX = "cg_detail_v6_";
+var LS_PAPRIKA_MAP_KEY = "paprika_map_v6";
+var LS_BINANCE_TICKERS_KEY = "binance_tickers_v6";
+var LS_FNG_KEY = "fng_v6";
 var TTL_PAPRIKA_MAP_MS = 7 * 24 * 3600 * 1000; // 파프리카 매핑 캐시 7일
 
 // 업비트 원화마켓 120여 개 상장 코인 전체 CoinGecko ID 정적 매핑
@@ -745,10 +759,12 @@ function fmtKoreanUnit(n) {
 function updateSummaryStats() {
   if (markets.length === 0) return;
   
-  // 1) 원화마켓 정보
-  $("valTotalMarkets").textContent = markets.length + " 종목";
+  // 1) 원화마켓 정보 (USDT 제외)
+  var activeMarkets = markets.filter(function (m) { return m.symbol !== "USDT"; });
+  $("valTotalMarkets").textContent = activeMarkets.length + " 종목";
   var totalVol24 = 0;
   markets.forEach(function (m) {
+    if (m.symbol === "USDT") return;
     var t = tickerByMarket[m.market];
     if (t) totalVol24 += t.acc_trade_price_24h || 0;
   });
@@ -816,6 +832,240 @@ function badgeHtml(symbol) {
   return '<span class="badge ' + g.cls + '">' + esc(g.label) + "</span>";
 }
 
+// ---------- 공포·탐욕 지수 연동 ----------
+function fetchFngIndex() {
+  var cached = lsGet(LS_FNG_KEY, 3600 * 1000); // 1시간 캐시
+  if (cached) {
+    renderFngCard(cached);
+    return;
+  }
+  // CORS 완전 허용이므로 직접 fetch
+  fetch("https://api.alternative.me/fng/?limit=1")
+    .then(function (res) {
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      return res.json();
+    })
+    .then(function (res) {
+      if (res && res.data && res.data[0]) {
+        var data = res.data[0];
+        lsSet(LS_FNG_KEY, data);
+        renderFngCard(data);
+      } else {
+        throw new Error("Invalid FNG data");
+      }
+    })
+    .catch(function (err) {
+      console.warn("FNG fetch failed:", err);
+      $("valFngValue").textContent = "-";
+      $("valFngSub").textContent = "지표 로드 오류";
+    });
+}
+
+function renderFngCard(data) {
+  var val = parseInt(data.value, 10);
+  if (isNaN(val)) val = 0;
+  var label = "중립";
+  var color = "#fbbf24";
+  var icon = "🟡";
+
+  if (val <= 25) {
+    label = "극단적 공포";
+    color = "#ff4a5a";
+    icon = "🔴";
+  } else if (val <= 46) {
+    label = "공포";
+    color = "#ff9f43";
+    icon = "🟠";
+  } else if (val <= 54) {
+    label = "중립";
+    color = "#fbbf24";
+    icon = "🟡";
+  } else if (val <= 75) {
+    label = "탐욕";
+    color = "#2ecc71";
+    icon = "🟢";
+  } else {
+    label = "극단적 탐욕";
+    color = "#1abc9c";
+    icon = "🟢";
+  }
+
+  $("valFngValue").textContent = val;
+  $("valFngValue").style.color = color;
+  $("valFngSub").textContent = label;
+  $("valFngIcon").textContent = icon;
+}
+
+// ---------- 바이낸스 전체 티커 연동 ----------
+var binanceTickers = null;
+var binanceTickersPromise = null;
+
+function fetchBinanceTickers() {
+  var cached = lsGet(LS_BINANCE_TICKERS_KEY, 3600 * 1000); // 1시간 캐시
+  if (cached) {
+    binanceTickers = cached;
+    binanceTickersPromise = null;
+    return Promise.resolve(binanceTickers);
+  }
+  
+  if (binanceTickersPromise) return binanceTickersPromise;
+  
+  var url1 = "https://api.binance.com/api/v3/ticker/price";
+  var url2 = "https://data-api.binance.vision/api/v3/ticker/price";
+  
+  binanceTickersPromise = fetch(url1)
+    .then(function (res) {
+      if (!res.ok) throw new Error("Binance main api failed: " + res.status);
+      return res.json();
+    })
+    .catch(function (err) {
+      console.warn("Binance main API failed, trying fallback:", err);
+      return fetch(url2).then(function (res) {
+        if (!res.ok) throw new Error("Binance fallback api failed: " + res.status);
+        return res.json();
+      });
+    })
+    .then(function (list) {
+      if (!Array.isArray(list)) throw new Error("Invalid binance tickers data");
+      var map = {};
+      list.forEach(function (item) {
+        if (item.symbol && item.price) {
+          map[item.symbol] = parseFloat(item.price);
+        }
+      });
+      binanceTickers = map;
+      lsSet(LS_BINANCE_TICKERS_KEY, binanceTickers);
+      return binanceTickers;
+    })
+    .catch(function (err) {
+      console.error("Failed to load Binance tickers:", err);
+      binanceTickers = {};
+      return binanceTickers;
+    });
+    
+  return binanceTickersPromise;
+}
+
+function fetchAndRenderBinanceCompare(m) {
+  var container = $("binanceCompareSection");
+  if (!container) return;
+
+  fetchBinanceTickers()
+    .then(function (map) {
+      var symbol = m.symbol.toUpperCase();
+      var binanceSymbol = symbol + "USDT";
+      
+      if (symbol === "USDT") {
+        container.innerHTML = '<h3>바이낸스 비교</h3>' +
+          '<div style="padding: 10px 0; color: var(--text-sub); text-align: center; font-size: 12.5px;">USDT(테더)는 시세 기준 스테이블 코인입니다.</div>';
+        return;
+      }
+
+      var binancePrice = map[binanceSymbol];
+      if (!binancePrice) {
+        container.innerHTML = '<h3>바이낸스 비교</h3>' +
+          '<div style="display:flex; align-items:center; justify-content:space-between; padding: 6px 0;">' +
+          '  <span style="color:var(--text-sub);">상장 상태</span>' +
+          '  <span class="badge" style="background:rgba(148, 156, 175, 0.12); color:#a7aebf; border:1px solid rgba(167, 174, 191, 0.3);">바이낸스 미상장</span>' +
+          '</div>';
+        return;
+      }
+
+      var url24h1 = "https://api.binance.com/api/v3/ticker/24hr?symbol=" + binanceSymbol;
+      var url24h2 = "https://data-api.binance.vision/api/v3/ticker/24hr?symbol=" + binanceSymbol;
+      var urlFapi = "https://fapi.binance.com/futures/data/topLongShortAccountRatio?symbol=" + binanceSymbol + "&period=1d&limit=1";
+
+      var p24h = fetch(url24h1)
+        .then(function (res) {
+          if (!res.ok) throw new Error();
+          return res.json();
+        })
+        .catch(function () {
+          return fetch(url24h2).then(function (res) { return res.json(); });
+        })
+        .catch(function () { return null; });
+
+      var pFapi = fetch(urlFapi)
+        .then(function (res) {
+          if (!res.ok) throw new Error();
+          return res.json();
+        })
+        .then(function (arr) { return (arr && arr[0]) ? arr[0] : null; })
+        .catch(function () { return null; });
+
+      return Promise.all([p24h, pFapi]).then(function (results) {
+        var binance24h = results[0];
+        var binanceLongShort = results[1];
+
+        var t = tickerByMarket[m.market];
+        var upbitPrice = t ? t.trade_price : 0;
+        
+        var ut = tickerByMarket["KRW-USDT"];
+        var krwUsdtPrice = ut ? ut.trade_price : 1400;
+
+        var binanceKrwPrice = binancePrice * krwUsdtPrice;
+        
+        var premium = 0;
+        if (binanceKrwPrice > 0) {
+          premium = ((upbitPrice - binanceKrwPrice) / binanceKrwPrice) * 100;
+        }
+
+        var html = '<h3>바이낸스 비교</h3>';
+        html += kvRow("바이낸스 가격 (USDT)", binancePrice.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 6 }) + " USDT");
+        html += kvRow("바이낸스 가격 (원화 환산)", fmtPrice(binanceKrwPrice));
+        
+        var premSign = premium >= 0 ? "+" : "";
+        var premClass = premium >= 0 ? "up" : "down";
+        html += kvRow("업비트 프리미엄 (USDT 환산 기준)", '<span class="' + premClass + '" style="font-size:14px; font-weight:700;">' + premSign + premium.toFixed(2) + '%</span>');
+
+        if (binance24h) {
+          var upbitVol = t ? (t.acc_trade_price_24h || 0) : 0;
+          var binanceVol = parseFloat(binance24h.quoteVolume) * krwUsdtPrice;
+          var totalVol = upbitVol + binanceVol;
+          var upbitPct = totalVol > 0 ? (upbitVol / totalVol * 100).toFixed(1) : 50;
+          var binancePct = totalVol > 0 ? (binanceVol / totalVol * 100).toFixed(1) : 50;
+
+          var volumeBar = '<div style="margin: 8px 0 4px; font-size:12px;">' +
+            '  <div style="display:flex; justify-content:space-between; color:var(--text-sub); margin-bottom:4px;">' +
+            '    <span>업비트: ' + fmtVolume(upbitVol) + ' (' + upbitPct + '%)</span>' +
+            '    <span>바이낸스: ' + fmtVolume(binanceVol) + ' (' + binancePct + '%)</span>' +
+            '  </div>' +
+            '  <div style="height:8px; background:rgba(255,255,255,0.05); border-radius:4px; overflow:hidden; display:flex;">' +
+            '    <div style="width:' + upbitPct + '%; background:var(--accent);"></div>' +
+            '    <div style="width:' + binancePct + '%; background:var(--accent-purple);"></div>' +
+            '  </div>' +
+            '</div>';
+          html += kvRow("24시간 거래량 비교", volumeBar);
+        }
+
+        if (binanceLongShort) {
+          var longPct = parseFloat(binanceLongShort.longAccount) * 100;
+          var shortPct = parseFloat(binanceLongShort.shortAccount) * 100;
+          var ratioBar = '<div style="margin: 8px 0 4px; font-size:12px;">' +
+            '  <div style="display:flex; justify-content:space-between; color:var(--text-sub); margin-bottom:4px;">' +
+            '    <span class="up">롱: ' + longPct.toFixed(1) + '%</span>' +
+            '    <span class="down">숏: ' + shortPct.toFixed(1) + '%</span>' +
+            '  </div>' +
+            '  <div style="height:8px; background:rgba(255,255,255,0.05); border-radius:4px; overflow:hidden; display:flex;">' +
+            '    <div style="width:' + longPct.toFixed(1) + '%; background:var(--up-red);"></div>' +
+            '    <div style="width:' + shortPct.toFixed(1) + '%; background:var(--down-blue);"></div>' +
+            '  </div>' +
+            '</div>';
+          html += kvRow("선물 롱/숏 비율 (1D 계정 기준)", ratioBar);
+        }
+
+        var timeStr = nowStr().substring(0, 5);
+        html += '<div style="text-align:right; font-size:11px; color:var(--text-sub); margin-top:6px;">바이낸스 실시간 · ' + timeStr + ' 기준</div>';
+
+        container.innerHTML = html;
+      });
+    })
+    .catch(function (err) {
+      console.warn("Binance compare render failed:", err);
+      container.innerHTML = '<h3>바이낸스 비교</h3><div class="panel-warn">바이낸스 정보를 불러오지 못했습니다.</div>';
+    });
+}
+
 // ---------- 업비트 API 연동 ----------
 function loadMarkets() {
   var cached = lsGet(LS_MARKETS_KEY, TTL_MARKETS_MS);
@@ -835,6 +1085,16 @@ function loadMarkets() {
             symbol: m.market.split("-")[1]
           };
         });
+      // 혹시라도 KRW-USDT가 목록에 없으면 명시적 추가
+      var hasUsdt = markets.some(function (m) { return m.symbol === "USDT"; });
+      if (!hasUsdt) {
+        markets.push({
+          market: "KRW-USDT",
+          korean_name: "테더",
+          english_name: "Tether",
+          symbol: "USDT"
+        });
+      }
       lsSet(LS_MARKETS_KEY, markets);
       return markets;
     });
@@ -862,6 +1122,7 @@ function refreshTickers() {
 function getVisibleRows() {
   var term = searchTerm.trim().toLowerCase();
   var rows = markets.filter(function (m) {
+    if (m.symbol === "USDT") return false; // USDT는 시세 참고용이므로 목록에서 제외
     if (!term) return true;
     return m.korean_name.toLowerCase().indexOf(term) !== -1 ||
       m.symbol.toLowerCase().indexOf(term) !== -1 ||
@@ -1294,6 +1555,18 @@ function openDetail(marketCode) {
       var twitterScreen = cgData && cgData.links && cgData.links.twitter_screen_name;
       var subReddit = cgData && cgData.links && cgData.links.subreddit_url;
 
+      // CoinGecko 추가 심리 및 가격 지표 수집
+      var cgVotesUp = 0;
+      var cgWatchlist = 0;
+      var cgAthChange = 0;
+      if (cgData) {
+        cgVotesUp = cgData.sentiment_votes_up_percentage || 0;
+        cgWatchlist = cgData.watchlist_portfolio_users || 0;
+        if (cgData.market_data && cgData.market_data.ath_change_percentage) {
+          cgAthChange = cgData.market_data.ath_change_percentage.usd || 0;
+        }
+      }
+
       var profile = {
         name: m.korean_name,
         symbol: m.symbol,
@@ -1327,7 +1600,12 @@ function openDetail(marketCode) {
         // 신규 자료
         latest_release: gitRelease,
         recent_commits: gitData ? gitData.recent_commits : [],
-        events: paprikaEvents
+        events: paprikaEvents,
+
+        // CoinGecko 해외 반응
+        cg_votes_up: cgVotesUp,
+        cg_watchlist: cgWatchlist,
+        cg_ath_change: cgAthChange
       };
 
       // 캐시 저장
@@ -1355,11 +1633,16 @@ function renderDetailPanel(m, profile) {
   html += '<div class="meta" style="margin-bottom:12px;">데이터 출처: ' + sources.join(", ") + '</div>';
   html += '<div class="desc-box">' + esc(profile.description) + '</div>';
   
+  // 1. 바이낸스 비교 섹션 컨테이너 추가 (비동기로 채워짐)
+  html += '<div id="binanceCompareSection" style="margin-top:18px;">' +
+    '  <h3>바이낸스 비교</h3>' +
+    '  <div class="panel-msg" style="padding: 10px 0;">바이낸스 실시간 정보 로딩 중...</div>' +
+    '</div>';
+
   // 개발 핵심 정보
   html += "<h3>실시간 개발 핵심 지표</h3>";
   html += kvRow("프로그래밍 언어", '<span style="color:var(--accent); font-weight:600;">' + esc(profile.language) + '</span>');
   
-  // 최신 릴리스 렌더링
   if (profile.latest_release) {
     html += kvRow("최신 릴리스", '<span class="badge g-active" style="padding:2px 8px; font-size:11px;">' + esc(profile.latest_release.tag_name) + '</span> <span style="font-size:12px; color:var(--text-sub);">' + formatKoreanDate(profile.latest_release.published_at) + '</span>');
   }
@@ -1370,7 +1653,6 @@ function renderDetailPanel(m, profile) {
   html += kvRow("최근 4주 개발 커밋", '<span style="color:#4ade80; font-weight:700;">' + fmtInt(profile.commits) + '회</span>');
   html += kvRow("마지막 코드 반영일", esc(profile.pushed_at));
   
-  // 차트 시각화
   if (profile.trend && profile.trend.length > 0) {
     html += '<div class="chart-wrap">';
     html += '  <div class="chart-title-wrap"><span>최근 10주 커밋 추이</span><span>최대 ' + Math.max.apply(null, profile.trend) + 'commits</span></div>';
@@ -1378,7 +1660,6 @@ function renderDetailPanel(m, profile) {
     html += '</div>';
   }
   
-  // 최근 커밋 5건 목록
   if (profile.recent_commits && profile.recent_commits.length > 0) {
     html += "<h3>최근 개발 활동 (커밋 내역)</h3>";
     html += '<div style="background:rgba(255,255,255,0.02); border:1px solid var(--border-light); border-radius:10px; padding:12px; font-size:12.5px; display:flex; flex-direction:column; gap:8px; margin-bottom:12px;">';
@@ -1393,6 +1674,42 @@ function renderDetailPanel(m, profile) {
         '</div>';
     });
     html += '</div>';
+  }
+
+  // 2. 해외 반응 (CoinGecko) 섹션 추가
+  var hasSentiment = profile.cg_votes_up || profile.cg_watchlist || profile.cg_ath_change;
+  if (hasSentiment) {
+    html += "<h3>해외 반응</h3>";
+    
+    if (profile.cg_votes_up) {
+      var votesUp = parseFloat(profile.cg_votes_up);
+      var votesDown = 100 - votesUp;
+      var votesBar = '<div style="margin: 8px 0 4px; font-size:12px;">' +
+        '  <div style="display:flex; justify-content:space-between; color:var(--text-sub); margin-bottom:4px;">' +
+        '    <span class="up">글로벌 투표 긍정: ' + votesUp.toFixed(1) + '%</span>' +
+        '    <span class="down">부정: ' + votesDown.toFixed(1) + '%</span>' +
+        '  </div>' +
+        '  <div style="height:8px; background:rgba(255,255,255,0.05); border-radius:4px; overflow:hidden; display:flex;">' +
+        '    <div style="width:' + votesUp.toFixed(1) + '%; background:var(--accent);"></div>' +
+        '    <div style="width:' + votesDown.toFixed(1) + '%; background:rgba(255,74,90,0.2);"></div>' +
+        '  </div>' +
+        '</div>';
+      html += kvRow("글로벌 긍정 여론", votesBar);
+    }
+    
+    if (profile.cg_watchlist) {
+      var watchlistText = fmtKoreanUnit(profile.cg_watchlist);
+      html += kvRow("관심 등록 수", watchlistText ? watchlistText : fmtInt(profile.cg_watchlist) + " 명");
+    }
+    
+    if (profile.cg_ath_change) {
+      var athChange = parseFloat(profile.cg_ath_change);
+      var athCls = athChange >= 0 ? "up" : "down";
+      var athSign = athChange >= 0 ? "+" : "";
+      html += kvRow("역대 최고가 대비", '<span class="' + athCls + '" style="font-weight:600;">' + athSign + athChange.toFixed(2) + '%</span>');
+    }
+    
+    html += '<div style="text-align:right; font-size:11px; color:var(--text-sub); margin-top:6px;">출처: CoinGecko</div>';
   }
 
   // 커뮤니티 지표 병합 처리
@@ -1427,7 +1744,6 @@ function renderDetailPanel(m, profile) {
       var isLast = idx === profile.events.length - 1;
       var borderStyle = isLast ? "" : "border-bottom:1px dashed rgba(255,255,255,0.04); padding-bottom:6px; margin-bottom:2px;";
       
-      // 1년 이상 경과 여부
       var diffMs = Date.now() - new Date(ev.date).getTime();
       var isOld = diffMs > (365 * 24 * 3600 * 1000);
       var dateLabel = formatKoreanDate(ev.date) + (isOld ? " <span style='color:var(--up-red); font-size:10.5px;'>(오래됨)</span>" : "");
@@ -1462,15 +1778,22 @@ function renderDetailPanel(m, profile) {
     html += '<a href="' + esc(profile.subreddit_url) + '" target="_blank" rel="noopener">👾 Reddit</a>';
   }
   
-  // 구글 뉴스 검색 링크
   var googleNewsUrl = "https://news.google.com/search?q=" + encodeURIComponent(m.korean_name) + "+코인&hl=ko";
   html += '<a href="' + googleNewsUrl + '" target="_blank" rel="noopener">📰 Google 뉴스 검색</a>';
+
+  // 영문 뉴스 검색 아웃링크 추가
+  var englishTerm = m.english_name || m.symbol;
+  var googleEnglishNewsUrl = "https://news.google.com/search?q=" + encodeURIComponent(englishTerm) + "+crypto&hl=en-US&gl=US&ceid=US:en";
+  html += '<a href="' + googleEnglishNewsUrl + '" target="_blank" rel="noopener">📰 영문 뉴스 검색 ↗</a>';
 
   html += '<a href="https://api.upbit.com/v1/market/all" target="_blank" rel="noopener">📈 Upbit API</a>';
   html += "</div>";
 
   $("detailModalBody").innerHTML = html;
   showModal();
+
+  // 바이낸스 실시간 비교 렌더링 호출
+  fetchAndRenderBinanceCompare(m);
 }
 
 function setNoDataPanel(m, reason) {
@@ -1483,8 +1806,17 @@ function setNoDataPanel(m, reason) {
     '<div class="desc-box" style="margin-top: 14px; background: rgba(255, 74, 90, 0.05); border: 1px solid rgba(255, 74, 90, 0.2); color: #ff8a92;">' +
     esc(reason) + 
     '</div>' +
-    '<div class="panel-msg">비공개 개발 중이거나 오픈소스 코드가 구축되지 않은 프로젝트는 실시간 지표 수집이 불가합니다.</div>';
+    '<div class="panel-msg">비공개 개발 중이거나 오픈소스 코드가 구축되지 않은 프로젝트는 실시간 지표 수집이 불가합니다.</div>' +
+    '<div id="binanceCompareSection" style="margin-top:18px;">' +
+    '  <h3>바이낸스 비교</h3>' +
+    '  <div class="panel-msg" style="padding: 10px 0;">바이낸스 실시간 정보 로딩 중...</div>' +
+    '</div>' +
+    '<h3 style="margin-top:14px;">공식 아웃링크</h3><div class="links">' +
+    '  <a href="https://news.google.com/search?q=' + encodeURIComponent(m.korean_name) + '+코인&hl=ko" target="_blank" rel="noopener">📰 Google 뉴스 검색</a>' +
+    '  <a href="https://news.google.com/search?q=' + encodeURIComponent(m.english_name || m.symbol) + '+crypto&hl=en-US&gl=US&ceid=US:en" target="_blank" rel="noopener">📰 영문 뉴스 검색 ↗</a>' +
+    '</div>';
   showModal();
+  fetchAndRenderBinanceCompare(m);
 }
 
 function handleCgFail(m, err) {
@@ -1541,6 +1873,8 @@ function kvRow(k, v) {
 // ---------- 초기화 ----------
 function init() {
   bindEvents();
+  fetchFngIndex();
+  fetchBinanceTickers();
   loadMarkets()
     .then(function () {
       renderTable();
