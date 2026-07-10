@@ -425,24 +425,212 @@
     to { opacity: 1; transform: scale(1); }
   }
 
+  /* 기본 스타일 (데스크톱) - 모바일 전용 요소를 숨김 */
+  .coin-symbol-mo, .rate-val, .badge-val, .volume-val {
+    display: none;
+  }
+  .mobile-sort-wrap {
+    display: none;
+  }
+
   /* 반응형 모바일 대응 */
   @media (max-width: 600px) {
+    body { padding: 12px; }
+    h1 { font-size: 20px; }
+    #searchInput { width: 100%; }
+    
+    .toolbar {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 8px;
+    }
+    
+    /* 모바일 정렬 셀렉터 활성화 */
+    .mobile-sort-wrap {
+      display: block;
+      width: 100%;
+    }
+    #mobileSortSelect {
+      background: var(--bg-card);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border-light);
+      color: var(--text-main);
+      padding: 10px 16px;
+      border-radius: 10px;
+      width: 100%;
+      font-size: 14px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    #mobileSortSelect:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(79, 124, 255, 0.2);
+    }
+    
+    /* 요약 카드 5종 2열 그리드 배치 */
+    .summary-grid {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .summary-card {
+      padding: 12px;
+      gap: 8px;
+      border-radius: 12px;
+    }
+    .summary-card .card-icon {
+      font-size: 20px;
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+    }
+    .summary-card .card-title {
+      font-size: 11px;
+    }
+    .summary-card .card-value {
+      font-size: 15px;
+    }
+    .summary-card .card-sub {
+      font-size: 10px;
+    }
+    .summary-grid .summary-card:nth-child(5) {
+      grid-column: span 2;
+    }
+    
+    /* 테이블 모바일 컴팩트 레이아웃 */
+    .table-wrap {
+      overflow-x: hidden; /* 가로 스크롤 완전 차단 */
+      border-radius: 12px;
+    }
+    table {
+      min-width: 0 !important;
+      width: 100% !important;
+      table-layout: fixed;
+    }
+    thead {
+      display: none !important; /* 헤더 숨김 */
+    }
+    tbody tr {
+      display: flex !important;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 8px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    }
+    tbody tr:hover td {
+      background: transparent; /* 모바일 호버 스위치 완화 */
+    }
+    tbody td {
+      padding: 0 !important;
+      border: none !important;
+      text-align: left;
+      white-space: normal; /* 텍스트 줄바꿈 허용 */
+      background: transparent !important;
+    }
+    /* 2, 4, 6번째 열 숨김 */
+    tbody td:nth-child(2), tbody td:nth-child(4), tbody td:nth-child(6) {
+      display: none !important;
+    }
+    /* 1, 3, 5번째 열을 3열 분할 배치 */
+    tbody td:nth-child(1) {
+      display: block !important;
+      width: 38% !important;
+      text-align: left;
+    }
+    tbody td:nth-child(3) {
+      display: block !important;
+      width: 32% !important;
+      text-align: right;
+    }
+    tbody td:nth-child(5) {
+      display: block !important;
+      width: 30% !important;
+      text-align: right;
+    }
+    
+    /* 모바일 전용 서브 요소 노출 */
+    .coin-symbol-mo {
+      display: block;
+      font-size: 11px;
+      color: var(--text-sub);
+      margin-top: 2px;
+    }
+    .coin-name-ko {
+      display: block;
+      font-weight: 600;
+      font-size: 14px;
+    }
+    .price-val {
+      display: block;
+      font-weight: 600;
+      font-size: 14px;
+    }
+    .rate-val {
+      display: block;
+      font-size: 11px;
+      margin-top: 2px;
+    }
+    .badge-val {
+      display: inline-block;
+      margin-bottom: 2px;
+    }
+    .badge-val .badge {
+      padding: 2px 6px;
+      font-size: 10px;
+    }
+    .volume-val {
+      display: block;
+      font-size: 10.5px;
+      color: var(--text-sub);
+    }
+    
+    /* 모달 팝업 모바일 최적화 */
     .modal-overlay {
       padding: 10px;
     }
     .modal-content {
-      max-height: 94vh;
+      max-height: 90vh;
       border-radius: 16px;
-      padding: 24px 16px 16px;
+      padding: 20px 14px 14px;
     }
-  }
-  @media (max-width: 480px) {
-    body { padding: 12px; }
-    h1 { font-size: 20px; }
-    #searchInput { width: 100%; }
-    table { min-width: 580px; font-size: 12.5px; }
-    thead th { padding: 10px 8px; font-size: 12px; }
-    tbody td { padding: 10px 8px; }
+    .modal-content h2 {
+      font-size: 18px;
+    }
+    .desc-box {
+      font-size: 12px;
+      padding: 8px 10px;
+    }
+    .kv {
+      flex-direction: column;
+      align-items: stretch;
+      padding: 6px 0;
+    }
+    .kv .k {
+      font-size: 12px;
+      margin-bottom: 2px;
+    }
+    .kv .v {
+      font-size: 13px;
+      text-align: left;
+      align-self: flex-start;
+      width: 100%;
+    }
+    
+    /* 게이지 바 및 차트 너비 넘침 방지 */
+    .chart-wrap {
+      padding: 8px;
+    }
+    .sparkline-svg {
+      height: 45px;
+    }
+    
+    /* 닫기 버튼 크기 조정 */
+    .modal-close-btn {
+      top: 12px;
+      right: 14px;
+      font-size: 24px;
+    }
   }
 </style>
 </head>
@@ -503,6 +691,18 @@
 
 <div class="toolbar">
   <input type="text" id="searchInput" placeholder="코인명 또는 심볼 검색">
+  <div class="mobile-sort-wrap">
+    <select id="mobileSortSelect">
+      <option value="acc_trade_price_24h_desc">거래대금 높은순</option>
+      <option value="acc_trade_price_24h_asc">거래대금 낮은순</option>
+      <option value="signed_change_rate_desc">등락률 높은순</option>
+      <option value="signed_change_rate_asc">등락률 낮은순</option>
+      <option value="korean_name_asc">코인명 가나다순</option>
+      <option value="korean_name_desc">코인명 역순</option>
+      <option value="symbol_asc">심볼 A-Z순</option>
+      <option value="symbol_desc">심볼 Z-A순</option>
+    </select>
+  </div>
 </div>
 
 <div id="errorBanner"></div>
@@ -740,6 +940,15 @@ function fmtRate(r) {
 function fmtInt(n) {
   if (n == null || isNaN(n)) return "데이터 없음";
   return Number(n).toLocaleString("ko-KR");
+}
+
+// 모바일용 거래대금 축약 포맷터 (예: 750억, 1.2조)
+function fmtMoVolume(v) {
+  if (v == null || isNaN(v)) return "-";
+  if (v >= 1e12) return (v / 1e12).toFixed(1).replace(/\.0$/, "") + "조";
+  if (v >= 1e8) return Math.round(v / 1e8).toLocaleString("ko-KR") + "억";
+  if (v >= 1e4) return Math.round(v / 1e4).toLocaleString("ko-KR") + "만";
+  return Math.round(v).toLocaleString("ko-KR");
 }
 
 // 한국어 글자 단위 포맷터 (12.3만 명, 1.2억 명 등)
@@ -1159,6 +1368,12 @@ function updateSortHeaders() {
       th.textContent = baseText + " ↕";
     }
   });
+
+  // 모바일 정렬 드롭다운과 동기화
+  var mobSel = $("mobileSortSelect");
+  if (mobSel) {
+    mobSel.value = sortKey + "_" + (sortDesc ? "desc" : "asc");
+  }
 }
 
 function renderTable() {
@@ -1171,11 +1386,26 @@ function renderTable() {
     var rateCls = rate > 0 ? "up" : (rate < 0 ? "down" : "");
     html += '<tr data-market="' + esc(m.market) + '"' +
       (m.market === selectedMarket ? ' class="selected"' : "") + ">" +
-      "<td>" + esc(m.korean_name) + "</td>" +
+      "<td>" +
+        '<div class="coin-name-wrap">' +
+          '<span class="coin-name-ko">' + esc(m.korean_name) + '</span>' +
+          '<span class="coin-symbol-mo">' + esc(m.symbol) + '</span>' +
+        '</div>' +
+      "</td>" +
       "<td>" + esc(m.symbol) + "</td>" +
-      "<td>" + (t ? fmtPrice(t.trade_price) : "-") + "</td>" +
+      "<td>" +
+        '<div class="price-wrap">' +
+          '<span class="price-val">' + (t ? fmtPrice(t.trade_price) : "-") + '</span>' +
+          '<span class="rate-val ' + rateCls + '">' + (t ? fmtRate(rate) : "-") + '</span>' +
+        '</div>' +
+      "</td>" +
       '<td class="' + rateCls + '">' + (t ? fmtRate(rate) : "-") + "</td>" +
-      "<td>" + (t ? fmtVolume(t.acc_trade_price_24h) : "-") + "</td>" +
+      "<td>" +
+        '<div class="trade-wrap">' +
+          '<span class="badge-val">' + badgeHtml(m.symbol) + '</span>' +
+          '<span class="volume-val">' + (t ? fmtMoVolume(t.acc_trade_price_24h) : "-") + '</span>' +
+        '</div>' +
+      "</td>" +
       "<td>" + badgeHtml(m.symbol) + "</td>" +
       "</tr>";
   }
@@ -1662,13 +1892,13 @@ function renderDetailPanel(m, profile) {
   
   if (profile.recent_commits && profile.recent_commits.length > 0) {
     html += "<h3>최근 개발 활동 (커밋 내역)</h3>";
-    html += '<div style="background:rgba(255,255,255,0.02); border:1px solid var(--border-light); border-radius:10px; padding:12px; font-size:12.5px; display:flex; flex-direction:column; gap:8px; margin-bottom:12px;">';
+    html += '<div style="background:rgba(255,255,255,0.02); border:1px solid var(--border-light); border-radius:10px; padding:12px; font-size:12.5px; display:flex; flex-direction:column; gap:8px; margin-bottom:12px; max-width:100%; overflow:hidden;">';
     profile.recent_commits.forEach(function (c, idx) {
       var isLast = idx === profile.recent_commits.length - 1;
       var borderStyle = isLast ? "" : "border-bottom:1px dashed rgba(255,255,255,0.04); padding-bottom:6px; margin-bottom:2px;";
-      html += '<div style="display:flex; flex-direction:column; ' + borderStyle + '">' +
-        '  <div style="display:flex; justify-content:space-between; margin-bottom:2px;">' +
-        '    <span style="text-overflow:ellipsis; overflow:hidden; white-space:nowrap; max-width:280px; color:var(--text-main);" title="' + esc(c.message) + '">📝 ' + esc(c.message) + '</span>' +
+      html += '<div style="display:flex; flex-direction:column; ' + borderStyle + ' width:100%; overflow:hidden;">' +
+        '  <div style="display:flex; justify-content:space-between; margin-bottom:2px; width:100%; overflow:hidden;">' +
+        '    <span class="commit-msg" style="text-overflow:ellipsis; overflow:hidden; white-space:nowrap; width:100%; color:var(--text-main);" title="' + esc(c.message) + '">📝 ' + esc(c.message) + '</span>' +
         '  </div>' +
         '  <span style="font-size:10px; color:var(--text-sub); text-align:right;">' + formatKoreanDate(c.date) + '</span>' +
         '</div>';
@@ -1835,6 +2065,20 @@ function bindEvents() {
     searchTerm = e.target.value;
     renderTable();
   });
+  
+  // 모바일 정렬 드롭다운 이벤트 연동
+  var mobSel = $("mobileSortSelect");
+  if (mobSel) {
+    mobSel.addEventListener("change", function (e) {
+      var val = e.target.value;
+      var parts = val.split("_");
+      var desc = parts.pop() === "desc";
+      var key = parts.join("_");
+      sortKey = key;
+      sortDesc = desc;
+      renderTable();
+    });
+  }
   document.querySelectorAll("th.sortable").forEach(function (th) {
     th.addEventListener("click", function () {
       var key = th.getAttribute("data-key");
