@@ -527,9 +527,26 @@
 
   /* 반응형 모바일 대응 */
   @media (max-width: 600px) {
-    body { padding: 12px; }
-    h1 { font-size: 20px; }
+    body { padding: 10px; }
+    h1 { font-size: 18px; text-align: center; }
     #searchInput { width: 100%; }
+    
+    header {
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    header h1 {
+      font-size: 19px;
+      text-align: center;
+    }
+    header div {
+      justify-content: center !important;
+      width: 100%;
+    }
     
     .toolbar {
       flex-direction: column;
@@ -560,33 +577,33 @@
       box-shadow: 0 0 0 3px rgba(79, 124, 255, 0.2);
     }
     
-    /* 요약 카드 5종 2열 그리드 배치 */
+    /* 요약 카드 6종 2열 그리드 배치 및 컴팩트 튜닝 */
     .summary-grid {
       grid-template-columns: repeat(2, 1fr);
-      gap: 8px;
-      margin-bottom: 16px;
+      gap: 6px;
+      margin-bottom: 12px;
     }
     .summary-card {
-      padding: 12px;
-      gap: 8px;
-      border-radius: 12px;
+      padding: 10px 8px;
+      gap: 6px;
+      border-radius: 10px;
     }
     .summary-card .card-icon {
-      font-size: 20px;
-      width: 36px;
-      height: 36px;
-      border-radius: 8px;
+      font-size: 18px;
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
     }
     .summary-card .card-title {
-      font-size: 11px;
-    }
-    .summary-card .card-value {
-      font-size: 15px;
-    }
-    .summary-card .card-sub {
       font-size: 10px;
     }
-    /* 6개 카드를 2열 3행으로 정렬하기 위해 span 2 제거 */
+    .summary-card .card-value {
+      font-size: 13.5px;
+      font-weight: 700;
+    }
+    .summary-card .card-sub {
+      font-size: 9.5px;
+    }
     
     /* 테이블 모바일 컴팩트 레이아웃 */
     .table-wrap {
@@ -605,7 +622,7 @@
       display: flex !important;
       justify-content: space-between;
       align-items: center;
-      padding: 10px 8px;
+      padding: 10px 6px;
       border-bottom: 1px solid rgba(255, 255, 255, 0.03);
     }
     tbody tr:hover td {
@@ -615,8 +632,10 @@
       padding: 0 !important;
       border: none !important;
       text-align: left;
-      white-space: normal; /* 텍스트 줄바꿈 허용 */
+      white-space: nowrap; /* 모바일에서 텍스트 밀림 방지 */
       background: transparent !important;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     /* 2, 4, 5, 7번째 열 숨김 (심볼, 전일대비, 프리미엄, 개발등급) */
     tbody td:nth-child(2), tbody td:nth-child(4), tbody td:nth-child(5), tbody td:nth-child(7) {
@@ -640,49 +659,66 @@
     }
     
     /* 모바일 전용 서브 요소 노출 */
+    .coin-name-wrap {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .fav-star {
+      font-size: 14px;
+      margin-right: 4px;
+    }
     .coin-symbol-mo {
       display: block;
-      font-size: 11px;
+      font-size: 10.5px;
       color: var(--text-sub);
-      margin-top: 2px;
+      margin-top: 1px;
     }
     .coin-name-ko {
-      display: block;
+      display: inline-block;
       font-weight: 600;
-      font-size: 14px;
+      font-size: 13px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      vertical-align: middle;
     }
     .price-val {
       display: block;
       font-weight: 600;
-      font-size: 14px;
+      font-size: 13px;
     }
     .rate-val {
       display: block;
-      font-size: 11px;
-      margin-top: 2px;
+      font-size: 10.5px;
+      margin-top: 1px;
     }
     .premium-val-mo {
       display: block;
-      font-size: 11px;
-      margin-top: 2px;
+      font-size: 10.5px;
+      margin-top: 1px;
     }
     .badge-val {
       display: inline-block;
-      margin-bottom: 2px;
+      margin-bottom: 1px;
     }
     .badge-val .badge {
-      padding: 2px 6px;
-      font-size: 10px;
+      padding: 1px 4px;
+      font-size: 9px;
     }
     .volume-val {
       display: block;
-      font-size: 10.5px;
+      font-size: 10px;
       color: var(--text-sub);
     }
     
     /* 모달 팝업 모바일 최적화 */
     .modal-overlay {
-      padding: 10px;
+      padding: 8px;
     }
     .modal-content {
       max-height: 90vh;
@@ -690,7 +726,16 @@
       padding: 20px 14px 14px;
     }
     .modal-content h2 {
-      font-size: 18px;
+      font-size: 16.5px;
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 6px;
+      padding-right: 28px; /* X 버튼과 배지 겹침 원천차단 */
+    }
+    .modal-content h2 .badge {
+      font-size: 10px;
+      padding: 2px 6px;
     }
     .desc-box {
       font-size: 12px;
@@ -720,10 +765,23 @@
       height: 45px;
     }
     
+    /* 공식 아웃링크 버튼 반응형 그리드화 */
+    .links {
+      display: grid !important;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 6px;
+      margin-top: 10px;
+    }
+    .links a {
+      font-size: 11.5px;
+      padding: 6px;
+      justify-content: center;
+    }
+    
     /* 닫기 버튼 크기 조정 */
     .modal-close-btn {
       top: 12px;
-      right: 14px;
+      right: 12px;
       font-size: 24px;
     }
   }
