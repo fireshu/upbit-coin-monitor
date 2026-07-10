@@ -26,6 +26,7 @@
     --shadow-card-glow: 0 0 20px rgba(79, 124, 255, 0.15);
   }
 
+  html { overflow-x: hidden; width: 100%; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   
   body {
@@ -547,6 +548,7 @@
 
   /* 반응형 모바일 대응 */
   @media (max-width: 768px) {
+    .orb { display: none !important; }  /* 오버플로우 원인 제거 */
     body { padding: 10px; width: 100% !important; margin: 0 !important; max-width: 100% !important; align-items: center !important; }
     .container { width: 100% !important; max-width: 100% !important; padding: 0 !important; margin: 0 auto !important; align-items: stretch !important; }
     .layout { display: block !important; width: 100% !important; }
