@@ -36,8 +36,13 @@
     min-height: 100vh;
     overflow-x: hidden;
     position: relative;
+  }
+  
+  .container {
+    width: 100%;
     max-width: 1200px;
-    margin: 0 auto !important;
+    margin: 0 auto;
+    position: relative;
   }
 
   /* 네온 오로라 구체 백드롭 (Rich Aesthetics) */
@@ -529,7 +534,8 @@
 
   /* 반응형 모바일 대응 */
   @media (max-width: 768px) {
-    body { padding: 10px; width: 100% !important; margin: 0 auto !important; max-width: 100% !important; }
+    body { padding: 10px; width: 100% !important; margin: 0 !important; max-width: 100% !important; }
+    .container { width: 100% !important; max-width: 100% !important; padding: 0 !important; margin: 0 auto !important; }
     .layout { display: block !important; width: 100% !important; }
     .table-wrap { width: 100% !important; margin: 0 !important; }
     .summary-grid { width: 100% !important; }
@@ -798,6 +804,7 @@
 <div class="orb orb-1"></div>
 <div class="orb orb-2"></div>
 
+<div class="container">
 <header>
   <h1>업비트 원화마켓 개발·커뮤니티 대시보드</h1>
   <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">
@@ -933,6 +940,8 @@
 <footer style="margin-top: 40px; text-align: center; font-size: 13px; color: var(--text-sub); padding: 20px 0; border-top: 1px solid var(--border-light);">
   본 사이트는 공개 API의 측정 데이터를 표시할 뿐이며 투자 권유가 아닙니다.
 </footer>
+
+</div> <!-- .container 닫기 -->
 
 <script>
 "use strict";
