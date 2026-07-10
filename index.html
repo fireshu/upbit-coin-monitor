@@ -257,22 +257,63 @@
   .badge.g-none   { background: rgba(148, 156, 175, 0.12); color: #a7aebf; border: 1px solid rgba(167, 174, 191, 0.3); }
   .badge.g-unknown{ background: rgba(148, 156, 175, 0.08); color: #7d8598; border: 1px solid rgba(125, 133, 152, 0.25); }
 
-  /* 럭셔리 상세 우측 패널 */
-  #detailPanel {
-    flex: 0 0 380px;
-    background: var(--bg-card);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid var(--border-light);
-    border-radius: 16px;
-    padding: 22px;
-    font-size: 14px;
-    position: sticky;
-    top: 24px;
-    box-shadow: var(--shadow-neon);
-    animation: slideUp 0.3s ease-out;
+  /* 럭셔리 상세 모달 오버레이 */
+  .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(4, 6, 10, 0.85); /* 반투명 어두운 배경 */
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    box-sizing: border-box;
   }
-  #detailPanel h2 {
+
+  /* 모달 카드형 본체 */
+  .modal-content {
+    background: var(--bg-card);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid var(--border-light);
+    border-radius: 20px;
+    width: 100%;
+    max-width: 640px;
+    max-height: 85vh;
+    overflow-y: auto;
+    position: relative;
+    padding: 32px 24px 24px;
+    box-sizing: border-box;
+    box-shadow: var(--shadow-neon), 0 0 30px rgba(79, 124, 255, 0.15);
+    animation: zoomIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  /* 닫기 X 버튼 (스크롤 시에도 우상단 고정) */
+  .modal-close-btn {
+    position: absolute;
+    top: 16px;
+    right: 20px;
+    background: transparent;
+    border: none;
+    color: var(--text-sub);
+    font-size: 28px;
+    cursor: pointer;
+    line-height: 1;
+    z-index: 1010;
+    transition: color 0.15s, transform 0.15s;
+    outline: none;
+  }
+  .modal-close-btn:hover {
+    color: var(--up-red);
+    transform: scale(1.1);
+  }
+
+  .modal-content h2 {
     font-size: 20px;
     margin-bottom: 6px;
     display: flex;
@@ -280,7 +321,7 @@
     justify-content: space-between;
     font-weight: 700;
   }
-  #detailPanel h3 {
+  .modal-content h3 {
     font-size: 13.5px;
     color: var(--text-sub);
     margin: 18px 0 8px;
@@ -290,7 +331,7 @@
     align-items: center;
     gap: 6px;
   }
-  #detailPanel h3::before {
+  .modal-content h3::before {
     content: "";
     width: 3px;
     height: 12px;
@@ -379,15 +420,21 @@
   .table-wrap::-webkit-scrollbar-thumb:hover { background: #2f3b55; }
 
   /* 애니메이션 */
-  @keyframes slideUp {
-    from { opacity: 0; transform: translateY(12px); }
-    to { opacity: 1; transform: translateY(0); }
+  @keyframes zoomIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
   }
 
   /* 반응형 모바일 대응 */
-  @media (max-width: 960px) {
-    .layout { flex-direction: column; }
-    #detailPanel { flex: none; width: 100%; position: static; }
+  @media (max-width: 600px) {
+    .modal-overlay {
+      padding: 10px;
+    }
+    .modal-content {
+      max-height: 94vh;
+      border-radius: 16px;
+      padding: 24px 16px 16px;
+    }
   }
   @media (max-width: 480px) {
     body { padding: 12px; }
@@ -396,7 +443,6 @@
     table { min-width: 580px; font-size: 12.5px; }
     thead th { padding: 10px 8px; font-size: 12px; }
     tbody td { padding: 10px 8px; }
-    #detailPanel { padding: 16px; }
   }
 </style>
 </head>
@@ -471,14 +517,14 @@
       </tbody>
     </table>
   </div>
-  
-  <aside id="detailPanel">
-    <h2>프로젝트 상세</h2>
-    <div class="panel-msg">
-      코인 행을 클릭해 보세요.<br>
-      CORS 차단 없이 브라우저에서 직접 깃허브 API를 호출하여 스타, 포크 수, 최근 10주 커밋 추이를 시각화합니다.
-    </div>
-  </aside>
+</div>
+
+<!-- 상세 정보 모달 팝업 -->
+<div id="detailModalOverlay" class="modal-overlay" style="display: none;">
+  <div id="detailModal" class="modal-content">
+    <button id="modalCloseBtn" class="modal-close-btn">&times;</button>
+    <div id="detailModalBody"></div>
+  </div>
 </div>
 
 <script>
@@ -609,6 +655,23 @@ function showError(msg) {
   el.style.display = "block";
 }
 function clearError() { $("errorBanner").style.display = "none"; }
+
+// ---------- 모달 제어 유틸 ----------
+function escCloseHandler(e) {
+  if (e.key === "Escape") {
+    closeModal();
+  }
+}
+function showModal() {
+  document.body.style.overflow = "hidden";
+  $("detailModalOverlay").style.display = "flex";
+  window.addEventListener("keydown", escCloseHandler);
+}
+function closeModal() {
+  document.body.style.overflow = "";
+  $("detailModalOverlay").style.display = "none";
+  window.removeEventListener("keydown", escCloseHandler);
+}
 
 // ---------- 자동 폴백 fetch 함수 (CORS 극복) ----------
 function smartFetch(url) {
@@ -1104,8 +1167,9 @@ function openDetail(marketCode) {
   renderTable();
   
   var seq = ++detailSeq;
-  $("detailPanel").innerHTML = "<h2>" + esc(m.korean_name) + " (" + esc(m.symbol) + ")</h2>" +
+  $("detailModalBody").innerHTML = "<h2>" + esc(m.korean_name) + " (" + esc(m.symbol) + ")</h2>" +
     '<div class="panel-msg">오픈소스 및 커뮤니티 지표 실시간 수집 중...</div>';
+  showModal();
     
   var symbolLower = m.symbol.toLowerCase();
   
@@ -1405,7 +1469,8 @@ function renderDetailPanel(m, profile) {
   html += '<a href="https://api.upbit.com/v1/market/all" target="_blank" rel="noopener">📈 Upbit API</a>';
   html += "</div>";
 
-  $("detailPanel").innerHTML = html;
+  $("detailModalBody").innerHTML = html;
+  showModal();
 }
 
 function setNoDataPanel(m, reason) {
@@ -1413,18 +1478,20 @@ function setNoDataPanel(m, reason) {
   renderTable();
   updateSummaryStats();
   
-  $("detailPanel").innerHTML = "<h2>" + esc(m.korean_name) + " (" + esc(m.symbol) + ") " +
+  $("detailModalBody").innerHTML = "<h2>" + esc(m.korean_name) + " (" + esc(m.symbol) + ") " +
     '<span class="badge g-none">데이터 없음</span></h2>' +
     '<div class="desc-box" style="margin-top: 14px; background: rgba(255, 74, 90, 0.05); border: 1px solid rgba(255, 74, 90, 0.2); color: #ff8a92;">' +
     esc(reason) + 
     '</div>' +
     '<div class="panel-msg">비공개 개발 중이거나 오픈소스 코드가 구축되지 않은 프로젝트는 실시간 지표 수집이 불가합니다.</div>';
+  showModal();
 }
 
 function handleCgFail(m, err) {
   if (err && err.status === 429) {
-    $("detailPanel").innerHTML = "<h2>" + esc(m.korean_name) + " (" + esc(m.symbol) + ")</h2>" +
+    $("detailModalBody").innerHTML = "<h2>" + esc(m.korean_name) + " (" + esc(m.symbol) + ")</h2>" +
       '<div class="panel-warn">API 요청 한도를 일시적으로 초과했습니다.<br>CORS 우회 우려로 인한 것이니 잠시 후 다시 클릭해 주세요.</div>';
+    showModal();
   } else {
     setNoDataPanel(m, "네트워크 타임아웃 또는 데이터가 CoinGecko/CoinPaprika에서 로드되지 않았습니다.");
   }
@@ -1456,6 +1523,14 @@ function bindEvents() {
     var tr = e.target.closest("tr");
     if (!tr || !tr.getAttribute("data-market")) return;
     openDetail(tr.getAttribute("data-market"));
+  });
+  
+  // 모달 닫기 이벤트 바인딩 (X 버튼 및 오버레이 배경 클릭)
+  $("modalCloseBtn").addEventListener("click", closeModal);
+  $("detailModalOverlay").addEventListener("click", function (e) {
+    if (e.target === $("detailModalOverlay")) {
+      closeModal();
+    }
   });
 }
 
