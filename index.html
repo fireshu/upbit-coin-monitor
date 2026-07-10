@@ -1,0 +1,1485 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>업비트 원화마켓 개발 활성도 모니터</title>
+<!-- 세련된 현대적 폰트 적용 -->
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  /* ---------- 럭셔리 다크 글라스모피즘 디자인 시스템 ---------- */
+  :root {
+    --bg-base: #07090e;
+    --bg-card: rgba(21, 26, 38, 0.65);
+    --bg-card-hover: rgba(28, 35, 51, 0.8);
+    --bg-card-active: rgba(43, 53, 76, 0.85);
+    --border-light: rgba(255, 255, 255, 0.08);
+    --border-glow: rgba(79, 124, 255, 0.25);
+    --text-main: #f0f2f5;
+    --text-sub: #909bb4;
+    --accent: #4f7cff;
+    --accent-purple: #a855f7;
+    --up-red: #ff4a5a;
+    --down-blue: #3d8bff;
+    
+    --shadow-neon: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    --shadow-card-glow: 0 0 20px rgba(79, 124, 255, 0.15);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  
+  body {
+    font-family: 'Outfit', "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+    background: var(--bg-base);
+    color: var(--text-main);
+    padding: 24px;
+    min-height: 100vh;
+    overflow-x: hidden;
+    position: relative;
+  }
+
+  /* 네온 오로라 구체 백드롭 (Rich Aesthetics) */
+  .orb {
+    position: absolute;
+    width: 600px;
+    height: 600px;
+    border-radius: 50%;
+    filter: blur(150px);
+    z-index: -1;
+    opacity: 0.18;
+    pointer-events: none;
+  }
+  .orb-1 {
+    background: radial-gradient(circle, var(--accent) 0%, rgba(79, 124, 255, 0) 70%);
+    top: -200px;
+    left: -150px;
+  }
+  .orb-2 {
+    background: radial-gradient(circle, var(--accent-purple) 0%, rgba(168, 85, 247, 0) 70%);
+    bottom: -200px;
+    right: -150px;
+  }
+
+  header {
+    margin-bottom: 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  h1 {
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    padding-left: 14px;
+    position: relative;
+    background: linear-gradient(135deg, #fff 30%, #879cff 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  h1::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 4px;
+    bottom: 4px;
+    width: 4px;
+    border-radius: 4px;
+    background: linear-gradient(180deg, var(--accent), var(--accent-purple));
+    box-shadow: 0 0 10px var(--accent);
+  }
+
+  /* 글로벌 요약 현황판 (밋밋함 및 공백 전면 해결) */
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .summary-card {
+    background: var(--bg-card);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--border-light);
+    border-radius: 16px;
+    padding: 18px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    box-shadow: var(--shadow-neon);
+    transition: transform 0.3s, border-color 0.3s, box-shadow 0.3s;
+  }
+  .summary-card:hover {
+    transform: translateY(-4px);
+    border-color: rgba(79, 124, 255, 0.3);
+    box-shadow: var(--shadow-card-glow), var(--shadow-neon);
+  }
+  .summary-card .card-icon {
+    font-size: 28px;
+    width: 52px;
+    height: 52px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: inset 0 0 12px rgba(255, 255, 255, 0.02);
+  }
+  .summary-card .card-title {
+    font-size: 13px;
+    color: var(--text-sub);
+    font-weight: 500;
+    margin-bottom: 4px;
+  }
+  .summary-card .card-value {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+  }
+  .summary-card .card-sub {
+    font-size: 11px;
+    color: var(--text-sub);
+    margin-top: 2px;
+  }
+
+  .toolbar {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+  }
+  #searchInput {
+    background: var(--bg-card);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--border-light);
+    color: var(--text-main);
+    padding: 10px 16px;
+    border-radius: 10px;
+    width: 280px;
+    font-size: 14px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  #searchInput::placeholder { color: #5a657c; }
+  #searchInput:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(79, 124, 255, 0.2);
+  }
+  .meta { font-size: 13px; color: var(--text-sub); }
+
+  #errorBanner {
+    display: none;
+    background: rgba(255, 74, 90, 0.1);
+    border: 1px solid rgba(255, 74, 90, 0.35);
+    color: #ff7884;
+    padding: 12px 16px;
+    border-radius: 10px;
+    margin-bottom: 16px;
+    font-size: 14px;
+    box-shadow: 0 4px 12px rgba(255, 74, 90, 0.08);
+  }
+
+  /* 레이아웃 구성 */
+  .layout {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+  }
+  
+  .table-wrap {
+    flex: 1 1 auto;
+    overflow-x: auto;
+    background: var(--bg-card);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--border-light);
+    border-radius: 16px;
+    box-shadow: var(--shadow-neon);
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+    min-width: 680px;
+  }
+  thead th {
+    position: sticky;
+    top: 0;
+    background: rgba(26, 33, 48, 0.9);
+    border-bottom: 1px solid var(--border-light);
+    color: var(--text-sub);
+    padding: 12px 14px;
+    font-weight: 600;
+    font-size: 13px;
+    text-align: right;
+    white-space: nowrap;
+  }
+  thead th:nth-child(1), thead th:nth-child(2), thead th:nth-child(6) { text-align: left; }
+  th.sortable { cursor: pointer; user-select: none; }
+  th.sortable:hover { background: rgba(255, 255, 255, 0.05); color: var(--text-main); }
+  th.sortable::after { content: ""; } /* 스크롤바 덮어쓰기: 스크립트에서 정렬 화살표를 직접 동적 업데이트함 */
+
+  tbody td {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    padding: 11px 14px;
+    text-align: right;
+    white-space: nowrap;
+    transition: background 0.15s;
+  }
+  tbody td:nth-child(1), tbody td:nth-child(2), tbody td:nth-child(6) { text-align: left; }
+  tbody tr { cursor: pointer; }
+  tbody tr:hover td { background: rgba(79, 124, 255, 0.06); }
+  tbody tr.selected td { background: rgba(79, 124, 255, 0.12); }
+  tbody tr.selected td:first-child { box-shadow: inset 4px 0 0 var(--accent); }
+
+  .up { color: var(--up-red); font-weight: 600; }
+  .down { color: var(--down-blue); font-weight: 600; }
+
+  /* 네온 배지 스타일 */
+  .badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 99px;
+    font-size: 11.5px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+  }
+  .badge.g-active { background: rgba(34, 197, 94, 0.12);  color: #4ade80; border: 1px solid rgba(74, 222, 128, 0.35); box-shadow: 0 0 10px rgba(74, 222, 128, 0.1); }
+  .badge.g-normal { background: rgba(61, 139, 255, 0.12); color: #7ab3ff; border: 1px solid rgba(122, 179, 255, 0.35); box-shadow: 0 0 10px rgba(122, 179, 255, 0.1); }
+  .badge.g-stale  { background: rgba(245, 158, 11, 0.12); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.35); box-shadow: 0 0 10px rgba(251, 191, 36, 0.1); }
+  .badge.g-dead   { background: rgba(255, 74, 90, 0.12);  color: #ff7b84; border: 1px solid rgba(255, 123, 132, 0.35); box-shadow: 0 0 10px rgba(255, 123, 132, 0.1); }
+  .badge.g-none   { background: rgba(148, 156, 175, 0.12); color: #a7aebf; border: 1px solid rgba(167, 174, 191, 0.3); }
+  .badge.g-unknown{ background: rgba(148, 156, 175, 0.08); color: #7d8598; border: 1px solid rgba(125, 133, 152, 0.25); }
+
+  /* 럭셔리 상세 우측 패널 */
+  #detailPanel {
+    flex: 0 0 380px;
+    background: var(--bg-card);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--border-light);
+    border-radius: 16px;
+    padding: 22px;
+    font-size: 14px;
+    position: sticky;
+    top: 24px;
+    box-shadow: var(--shadow-neon);
+    animation: slideUp 0.3s ease-out;
+  }
+  #detailPanel h2 {
+    font-size: 20px;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-weight: 700;
+  }
+  #detailPanel h3 {
+    font-size: 13.5px;
+    color: var(--text-sub);
+    margin: 18px 0 8px;
+    border-bottom: 1px solid var(--border-light);
+    padding-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  #detailPanel h3::before {
+    content: "";
+    width: 3px;
+    height: 12px;
+    background: var(--accent);
+    display: inline-block;
+    border-radius: 2px;
+  }
+
+  .kv {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    border-bottom: 1px dashed rgba(255, 255, 255, 0.04);
+  }
+  .kv:last-child { border-bottom: none; }
+  .kv .k { color: var(--text-sub); }
+  .kv .v { font-family: 'Outfit', sans-serif; font-weight: 500; }
+  
+  .desc-box {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--border-light);
+    padding: 10px 12px;
+    border-radius: 8px;
+    margin: 8px 0;
+    font-size: 12.5px;
+    color: var(--text-sub);
+    line-height: 1.5;
+  }
+
+  /* SVG 미니 차트 (Sparkline) 스타일 */
+  .chart-wrap {
+    margin: 12px 0;
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--border-light);
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .chart-title-wrap {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--text-sub);
+  }
+  .sparkline-svg {
+    width: 100%;
+    height: 60px;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .links a {
+    color: #9db9ff;
+    background: rgba(79, 124, 255, 0.1);
+    border: 1px solid rgba(79, 124, 255, 0.3);
+    border-radius: 8px;
+    padding: 5px 12px;
+    text-decoration: none;
+    font-size: 12.5px;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .links a:hover {
+    background: rgba(79, 124, 255, 0.2);
+    border-color: var(--accent);
+  }
+
+  .panel-msg { color: var(--text-sub); padding: 12px 0; text-align: center; line-height: 1.6; }
+  .panel-warn { color: #ff8a92; padding: 12px 0; text-align: center; }
+
+  /* 스크롤바 커스텀 */
+  .table-wrap::-webkit-scrollbar { height: 8px; width: 8px; }
+  .table-wrap::-webkit-scrollbar-track { background: transparent; }
+  .table-wrap::-webkit-scrollbar-thumb { background: #1c2333; border-radius: 4px; }
+  .table-wrap::-webkit-scrollbar-thumb:hover { background: #2f3b55; }
+
+  /* 애니메이션 */
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* 반응형 모바일 대응 */
+  @media (max-width: 960px) {
+    .layout { flex-direction: column; }
+    #detailPanel { flex: none; width: 100%; position: static; }
+  }
+  @media (max-width: 480px) {
+    body { padding: 12px; }
+    h1 { font-size: 20px; }
+    #searchInput { width: 100%; }
+    table { min-width: 580px; font-size: 12.5px; }
+    thead th { padding: 10px 8px; font-size: 12px; }
+    tbody td { padding: 10px 8px; }
+    #detailPanel { padding: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- 오로라 글로우 구체 -->
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+
+<header>
+  <h1>업비트 원화마켓 개발·커뮤니티 대시보드</h1>
+  <div class="meta" id="statusText">시세 및 요약 정보를 구성하는 중...</div>
+</header>
+
+<!-- 요약 통계 대시보드 (밋밋함 전면 해소) -->
+<div class="summary-grid">
+  <div class="summary-card" id="cardMarket">
+    <div class="card-icon" style="color: #60a5fa;">📊</div>
+    <div>
+      <div class="card-title">원화마켓 시장 규모</div>
+      <div class="card-value" id="valTotalMarkets">-</div>
+      <div class="card-sub" id="valTotalVolume">-</div>
+    </div>
+  </div>
+  <div class="summary-card" id="cardActive">
+    <div class="card-icon" style="color: #4ade80;">🟢</div>
+    <div>
+      <div class="card-title">오픈소스 활성화 비율</div>
+      <div class="card-value" id="valActiveRate">-</div>
+      <div class="card-sub" id="valActiveCount">-</div>
+    </div>
+  </div>
+  <div class="summary-card" id="cardWarning">
+    <div class="card-icon" style="color: #fca5a5;">🔴</div>
+    <div>
+      <div class="card-title">개발 정체 및 중단 위기</div>
+      <div class="card-value" id="valDeadRate">-</div>
+      <div class="card-sub" id="valDeadCount">-</div>
+    </div>
+  </div>
+  <div class="summary-card" id="cardHot">
+    <div class="card-icon" style="color: #fbbf24;">🔥</div>
+    <div>
+      <div class="card-title">최근 최고 열혈 개발 프로젝트</div>
+      <div class="card-value" id="valHotName" style="font-size: 16px; margin-top: 3px;">-</div>
+      <div class="card-sub" id="valHotCommits">-</div>
+    </div>
+  </div>
+</div>
+
+<div class="toolbar">
+  <input type="text" id="searchInput" placeholder="코인명 또는 심볼 검색">
+</div>
+
+<div id="errorBanner"></div>
+
+<div class="layout">
+  <div class="table-wrap">
+    <table id="coinTable">
+      <thead>
+        <tr>
+          <th class="sortable" data-key="korean_name">코인명</th>
+          <th class="sortable" data-key="symbol">심볼</th>
+          <th class="sortable" data-key="trade_price">현재가</th>
+          <th class="sortable" data-key="signed_change_rate">전일대비</th>
+          <th class="sortable" data-key="acc_trade_price_24h">거래대금(24H)</th>
+          <th>개발 등급</th>
+        </tr>
+      </thead>
+      <tbody id="coinTbody">
+        <tr><td colspan="6" style="text-align:center; padding: 40px 0; color: var(--text-sub);">종목 및 시세 로드 중...</td></tr>
+      </tbody>
+    </table>
+  </div>
+  
+  <aside id="detailPanel">
+    <h2>프로젝트 상세</h2>
+    <div class="panel-msg">
+      코인 행을 클릭해 보세요.<br>
+      CORS 차단 없이 브라우저에서 직접 깃허브 API를 호출하여 스타, 포크 수, 최근 10주 커밋 추이를 시각화합니다.
+    </div>
+  </aside>
+</div>
+
+<script>
+"use strict";
+/* ==========================================================================
+   업비트 원화마켓 개발·커뮤니티 모니터링 고도화 (GitHub 직접 연계 + 럭셔리 대시보드)
+   ========================================================================== */
+
+// ---------- 상수 및 주소 ----------
+var UPBIT_MARKET_ALL = "https://api.upbit.com/v1/market/all?isDetails=false";
+var UPBIT_TICKER = "https://api.upbit.com/v1/ticker?markets=";
+var CG_DETAIL = function (id) {
+  return "https://api.coingecko.com/api/v3/coins/" + encodeURIComponent(id) +
+    "?developer_data=true&community_data=true&market_data=false&tickers=false&localization=false";
+};
+var TICKER_INTERVAL_MS = 10000;         // 시세 10초 갱신
+var TTL_DETAIL_MS = 12 * 3600 * 1000;    // 상세 캐시 12시간
+var TTL_MARKETS_MS = 24 * 3600 * 1000;  // 업비트 마켓 목록 캐시 24시간
+var LS_MARKETS_KEY = "upbit_markets_v5";
+var LS_DETAIL_PREFIX = "cg_detail_v5_";
+var LS_PAPRIKA_MAP_KEY = "paprika_map_v5";
+var TTL_PAPRIKA_MAP_MS = 7 * 24 * 3600 * 1000; // 파프리카 매핑 캐시 7일
+
+// 업비트 원화마켓 120여 개 상장 코인 전체 CoinGecko ID 정적 매핑
+var STATIC_MAP = {
+  btc: "bitcoin", eth: "ethereum", xrp: "ripple", sol: "solana", ada: "cardano",
+  doge: "dogecoin", trx: "tron", avax: "avalanche-2", link: "chainlink", dot: "polkadot",
+  bch: "bitcoin-cash", ltc: "litecoin", etc: "ethereum-classic", xlm: "stellar",
+  atom: "cosmos", near: "near", hbar: "hedera-hashgraph", sui: "sui", apt: "aptos",
+  arb: "arbitrum", op: "optimism", uni: "uniswap", aave: "aave", sand: "the-sandbox",
+  mana: "decentraland", axs: "axie-infinity", eos: "eos", algo: "algorand",
+  vet: "vechain", shib: "shiba-inu", sei: "sei-network", stx: "blockstack",
+  imx: "immutable-x", grt: "the-graph", ens: "ethereum-name-service",
+  pol: "polygon-ecosystem-token", usdt: "tether", usdc: "usd-coin", pepe: "pepe", bonk: "bonk",
+  wif: "dogwifhat", jup: "jupiter-exchange-solana", ondo: "ondo-finance",
+  render: "render-token", rndr: "render-token", inj: "injective-protocol",
+  fet: "fetch-ai", stg: "stargate-finance", t: "threshold-network-token",
+  mina: "mina-protocol", mask: "mask-network", bat: "basic-attention-token",
+  qtum: "qtum", neo: "neo", gas: "gas", waves: "waves", zil: "zilliqa",
+  theta: "theta-token", tfuel: "theta-fuel", enj: "enjincoin", chz: "chiliz",
+  celo: "celo", ankr: "ankr", flow: "flow", kava: "kava", bora: "bora",
+  aqt: "alpha-quark-token", mvl: "mvl", stpt: "standard-tokenization-protocol",
+  iost: "iost", cbk: "cobak-token", aht: "aha-token", moc: "moss-coin",
+  aergo: "aergo", hive: "hive", hbd: "hive-dollar", scrt: "secret",
+  pundix: "pundi-x-2", vtho: "vethor-token", iota: "iota", steem: "steem",
+  sbd: "steem-dollar", meta: "metadium", fct2: "firmachain", med: "medibloc",
+  xem: "nem", strk: "starknet", cvc: "civic", iq: "iq", knc: "kyber-network-crystal",
+  loom: "loom-network", mtl: "metal", ark: "ark", polyx: "polymesh",
+  waxp: "wax", powr: "power-ledger", ardr: "ardor", zrx: "0x", adx: "adex",
+  glmr: "glimmer", movr: "moonriver", astr: "astar", lsk: "lisk", w: "wormhole",
+  zeta: "zetachain", drift: "drift-protocol", safe: "safe", jto: "jito-governance",
+  pyth: "pyth-network", alt: "altlayer", manta: "manta-network", xai: "xai",
+  tia: "celestia", pyr: "vulcan-forged", ctc: "creditcoin", egld: "elrond",
+  icx: "icon", ftt: "ftx-token", blur: "blur", api3: "api3", bnt: "bancor",
+  ldo: "lido-dao", rpl: "rocket-pool", mkr: "maker", crv: "curve-dao-token",
+  sushi: "sushi", bico: "biconomy", gal: "galxe", cyber: "cyberconnect",
+  id: "space-id", edu: "open-campus", hook: "hook-protocol", rad: "radicle",
+  band: "band-protocol", kmd: "komodo", rlc: "iexec-rlc", rep: "augur",
+  xvg: "verge", rvn: "ravencoin", btt: "bittorrent", beam: "beam",
+  ordi: "ordi", ssv: "ssv-network", ray: "raydium", floki: "floki",
+  wld: "worldcoin-wld", jasmy: "jasmycoin", euler: "euler", bounce: "bounce-token",
+  auction: "bounce-token", ach: "alchemy-pay", hot: "holo"
+};
+
+// GitHub 레포 직접 연동 매핑 테이블 (CORS 문제없고 API 속도 초고속)
+var STATIC_GITHUB_MAP = {
+  btc: "bitcoin/bitcoin", eth: "ethereum/go-ethereum", xrp: "XRPLF/rippled", sol: "solana-labs/solana",
+  ada: "input-output-hk/cardano-node", doge: "dogecoin/dogecoin", trx: "tronprotocol/java-tron",
+  avax: "ava-labs/avalanchego", link: "smartcontractkit/chainlink", dot: "paritytech/polkadot",
+  bch: "bitcoin-cash-node/bitcoin-cash-node", ltc: "litecoin-project/litecoin", etc: "ethereumclassic/go-ethereumclassic",
+  xlm: "stellar/stellar-core", atom: "cosmos/gaia", near: "near/nearcore", hbar: "hashgraph/hedera-services",
+  sui: "MystenLabs/sui", apt: "aptos-labs/aptos-core", arb: "OffchainLabs/nitro", op: "ethereum-optimism/optimism",
+  uni: "Uniswap/v3-core", aave: "aave/aave-v3-core", vet: "vechain/thor", stx: "stacks-network/stacks-blockchain",
+  grt: "graphprotocol/graph-node", ens: "ensdomains/ens-contracts", pol: "maticnetwork/bor",
+  sei: "sei-protocol/sei-chain", imx: "immutable/imx-core-sdk", astr: "astarnetwork/astar",
+  ldo: "lidofinance/lido-dao", mkr: "makerdao/dss", crv: "curvefi/curve-contract", sushi: "sushiswap/sushiswap",
+  "1inch": "1inch/1inch-protocol", celo: "celo-org/celo-blockchain", kava: "Kava-Network/kava",
+  mina: "MinaProtocol/mina", mask: "dimensiondev/maskbook", bat: "brave/brave-core",
+  qtum: "qtumproject/qtum", neo: "neo-project/neo", gas: "neo-project/neo", zil: "Zilliqa/Zilliqa",
+  iost: "iost-official/go-iost", hive: "openhive-network/hive", steem: "steemit/steem",
+  chz: "chiliz/chiliz-chain-v2", flow: "onflow/flow-go", ctc: "gluwa/creditcoin-authority"
+};
+
+// ---------- 상태 변수 ----------
+var markets = [];
+var tickerByMarket = {};
+var gradeBySymbol = {};        // {symbol: {cls, label, commits}}
+var selectedMarket = null;
+var sortKey = "acc_trade_price_24h";
+var sortDesc = true;
+var searchTerm = "";
+var tickerBusy = false;
+var detailSeq = 0;
+var paprikaMap = {};
+var paprikaPromise = null;
+
+// ---------- 공통 유틸 ----------
+function $(id) { return document.getElementById(id); }
+function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+function esc(s) {
+  return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+    return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+  });
+}
+function nowStr() {
+  var d = new Date();
+  function p(n) { return (n < 10 ? "0" : "") + n; }
+  return p(d.getHours()) + ":" + p(d.getMinutes()) + ":" + p(d.getSeconds());
+}
+function lsGet(key, ttlMs) {
+  try {
+    var raw = localStorage.getItem(key);
+    if (!raw) return null;
+    var obj = JSON.parse(raw);
+    if (!obj || typeof obj.ts !== "number") return null;
+    if (Date.now() - obj.ts > ttlMs) return null;
+    return obj.data;
+  } catch (e) { return null; }
+}
+function lsSet(key, data) {
+  try {
+    localStorage.setItem(key, JSON.stringify({ ts: Date.now(), data: data }));
+  } catch (e) { /* 무시 */ }
+}
+function showError(msg) {
+  var el = $("errorBanner");
+  el.textContent = msg;
+  el.style.display = "block";
+}
+function clearError() { $("errorBanner").style.display = "none"; }
+
+// ---------- 자동 폴백 fetch 함수 (CORS 극복) ----------
+function smartFetch(url) {
+  return fetch(url)
+    .then(function (res) {
+      if (res.status === 429) throw { status: 429, message: "RATE_LIMIT" };
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      return res.json();
+    })
+    .catch(function (err) {
+      if (err && err.message === "RATE_LIMIT") throw err;
+      console.warn("Direct fetch failed, trying corsproxy.io:", url);
+      var proxy1 = "https://corsproxy.io/?url=" + encodeURIComponent(url);
+      return fetch(proxy1)
+        .then(function (res) {
+          if (res.status === 429) throw { status: 429, message: "RATE_LIMIT" };
+          if (!res.ok) throw new Error("Proxy1 HTTP " + res.status);
+          return res.json();
+        })
+        .catch(function (err2) {
+          if (err2 && err2.message === "RATE_LIMIT") throw err2;
+          console.warn("corsproxy.io failed, trying allorigins.win:", url);
+          var proxy2 = "https://api.allorigins.win/raw?url=" + encodeURIComponent(url);
+          return fetch(proxy2)
+            .then(function (res) {
+              if (res.status === 429) throw { status: 429, message: "RATE_LIMIT" };
+              if (!res.ok) throw new Error("Proxy2 HTTP " + res.status);
+              return res.json();
+            });
+        });
+    });
+}
+
+// ---------- 포맷터 ----------
+function fmtPrice(p) {
+  if (p == null || isNaN(p)) return "-";
+  var frac = p >= 1000 ? 0 : (p >= 100 ? 1 : (p >= 1 ? 2 : 4));
+  return p.toLocaleString("ko-KR", { minimumFractionDigits: frac, maximumFractionDigits: frac }) + " 원";
+}
+function fmtVolume(v) {
+  if (v == null || isNaN(v)) return "-";
+  if (v >= 1e12) return (v / 1e12).toFixed(2) + "조 원";
+  if (v >= 1e8) return Math.round(v / 1e8).toLocaleString("ko-KR") + "억 원";
+  if (v >= 1e4) return Math.round(v / 1e4).toLocaleString("ko-KR") + "만 원";
+  return Math.round(v).toLocaleString("ko-KR") + " 원";
+}
+function fmtRate(r) {
+  if (r == null || isNaN(r)) return "-";
+  var pct = r * 100;
+  return (pct > 0 ? "+" : "") + pct.toFixed(2) + "%";
+}
+function fmtInt(n) {
+  if (n == null || isNaN(n)) return "데이터 없음";
+  return Number(n).toLocaleString("ko-KR");
+}
+
+// 한국어 글자 단위 포맷터 (12.3만 명, 1.2억 명 등)
+function fmtKoreanUnit(n) {
+  if (n == null || isNaN(n) || n === 0) return null;
+  n = Number(n);
+  if (n >= 1e8) {
+    return (n / 1e8).toFixed(1).replace(/\.0$/, "") + "억 명";
+  }
+  if (n >= 1e4) {
+    return (n / 1e4).toFixed(1).replace(/\.0$/, "") + "만 명";
+  }
+  return n.toLocaleString("ko-KR") + " 명";
+}
+
+// ---------- 대시보드 글로벌 요약 통계 계산 ----------
+function updateSummaryStats() {
+  if (markets.length === 0) return;
+  
+  // 1) 원화마켓 정보
+  $("valTotalMarkets").textContent = markets.length + " 종목";
+  var totalVol24 = 0;
+  markets.forEach(function (m) {
+    var t = tickerByMarket[m.market];
+    if (t) totalVol24 += t.acc_trade_price_24h || 0;
+  });
+  $("valTotalVolume").textContent = "24H 총 거래대금: " + fmtVolume(totalVol24);
+
+  // 2) 개발 등급 통계 계산
+  var totalReviewed = 0;
+  var activeCount = 0;
+  var deadCount = 0;
+  var hotName = "-";
+  var hotCommits = 0;
+
+  for (var sym in gradeBySymbol) {
+    if (!gradeBySymbol.hasOwnProperty(sym)) continue;
+    var g = gradeBySymbol[sym];
+    totalReviewed++;
+    if (g.cls === "g-active" || g.cls === "g-normal") {
+      activeCount++;
+    } else if (g.cls === "g-dead") {
+      deadCount++;
+    }
+
+    if (g.commits > hotCommits) {
+      hotCommits = g.commits;
+      // 코인 한글명 찾기
+      var match = markets.find(function (m) { return m.symbol === sym; });
+      hotName = match ? match.korean_name + " (" + sym + ")" : sym;
+    }
+  }
+
+  if (totalReviewed > 0) {
+    var activeRate = ((activeCount / totalReviewed) * 100).toFixed(1);
+    var deadRate = ((deadCount / totalReviewed) * 100).toFixed(1);
+    $("valActiveRate").textContent = activeRate + "%";
+    $("valActiveCount").textContent = "활성화 프로필: " + activeCount + "개 / 전체 조회 " + totalReviewed + "개";
+    $("valDeadRate").textContent = deadRate + "%";
+    $("valDeadCount").textContent = "중단 의심 프로필: " + deadCount + "개";
+  } else {
+    $("valActiveRate").textContent = "-";
+    $("valActiveCount").textContent = "행을 클릭하면 통계가 집계됩니다.";
+    $("valDeadRate").textContent = "-";
+    $("valDeadCount").textContent = "조사된 지표 기반 분석";
+  }
+
+  if (hotCommits > 0) {
+    $("valHotName").textContent = hotName;
+    $("valHotCommits").textContent = "최근 4주 간 " + hotCommits + "회 커밋";
+  } else {
+    $("valHotName").textContent = "-";
+    $("valHotCommits").textContent = "커밋 지표 집계 대기";
+  }
+}
+
+// ---------- 등급 판정 로직 (4주 커밋 기준) ----------
+function computeGradeFromCommits(commitsCount) {
+  if (commitsCount == null) return { cls: "g-none", label: "데이터 없음" };
+  if (commitsCount >= 50) return { cls: "g-active", label: "활발" };
+  if (commitsCount >= 10) return { cls: "g-normal", label: "보통" };
+  if (commitsCount >= 1) return { cls: "g-stale", label: "정체" };
+  return { cls: "g-dead", label: "중단 의심" };
+}
+function badgeHtml(symbol) {
+  var g = gradeBySymbol[symbol];
+  if (!g) return '<span class="badge g-unknown">미조회</span>';
+  return '<span class="badge ' + g.cls + '">' + esc(g.label) + "</span>";
+}
+
+// ---------- 업비트 API 연동 ----------
+function loadMarkets() {
+  var cached = lsGet(LS_MARKETS_KEY, TTL_MARKETS_MS);
+  if (cached && cached.length) {
+    markets = cached;
+    return Promise.resolve(markets);
+  }
+  return smartFetch(UPBIT_MARKET_ALL)
+    .then(function (list) {
+      markets = list
+        .filter(function (m) { return m.market && m.market.indexOf("KRW-") === 0; })
+        .map(function (m) {
+          return {
+            market: m.market,
+            korean_name: m.korean_name,
+            english_name: m.english_name,
+            symbol: m.market.split("-")[1]
+          };
+        });
+      lsSet(LS_MARKETS_KEY, markets);
+      return markets;
+    });
+}
+
+function refreshTickers() {
+  if (tickerBusy || markets.length === 0) return;
+  tickerBusy = true;
+  var codes = markets.map(function (m) { return m.market; }).join(",");
+  smartFetch(UPBIT_TICKER + codes)
+    .then(function (arr) {
+      arr.forEach(function (t) { tickerByMarket[t.market] = t; });
+      clearError();
+      $("statusText").textContent = "동기화 시간: " + nowStr() + " (자동 10초 간격)";
+      renderTable();
+      updateSummaryStats();
+    })
+    .catch(function (err) {
+      showError("실시간 시세 네트워크 오류. 연결 확인 후 대기해 주세요.");
+    })
+    .then(function () { tickerBusy = false; });
+}
+
+// ---------- 테이블 렌더링 ----------
+function getVisibleRows() {
+  var term = searchTerm.trim().toLowerCase();
+  var rows = markets.filter(function (m) {
+    if (!term) return true;
+    return m.korean_name.toLowerCase().indexOf(term) !== -1 ||
+      m.symbol.toLowerCase().indexOf(term) !== -1 ||
+      (m.english_name || "").toLowerCase().indexOf(term) !== -1;
+  });
+  rows.sort(function (a, b) {
+    var va, vb;
+    if (sortKey === "korean_name") {
+      va = a.korean_name;
+      vb = b.korean_name;
+      return sortDesc ? vb.localeCompare(va, 'ko') : va.localeCompare(vb, 'ko');
+    } else if (sortKey === "symbol") {
+      va = a.symbol;
+      vb = b.symbol;
+      return sortDesc ? vb.localeCompare(va, 'en') : va.localeCompare(vb, 'en');
+    } else {
+      var ta = tickerByMarket[a.market], tb = tickerByMarket[b.market];
+      va = ta ? (ta[sortKey] || 0) : 0;
+      vb = tb ? (tb[sortKey] || 0) : 0;
+      return sortDesc ? vb - va : va - vb;
+    }
+  });
+  return rows;
+}
+
+// 헤더의 정렬 지시자 표시 동적 갱신
+function updateSortHeaders() {
+  document.querySelectorAll("th.sortable").forEach(function (th) {
+    var key = th.getAttribute("data-key");
+    var baseText = th.textContent.replace(/[▲▼↕\s]/g, ""); // 기존 표시 문자 제거
+    if (sortKey === key) {
+      th.textContent = baseText + " " + (sortDesc ? "▼" : "▲");
+    } else {
+      th.textContent = baseText + " ↕";
+    }
+  });
+}
+
+function renderTable() {
+  var rows = getVisibleRows();
+  var html = "";
+  for (var i = 0; i < rows.length; i++) {
+    var m = rows[i];
+    var t = tickerByMarket[m.market];
+    var rate = t ? t.signed_change_rate : null;
+    var rateCls = rate > 0 ? "up" : (rate < 0 ? "down" : "");
+    html += '<tr data-market="' + esc(m.market) + '"' +
+      (m.market === selectedMarket ? ' class="selected"' : "") + ">" +
+      "<td>" + esc(m.korean_name) + "</td>" +
+      "<td>" + esc(m.symbol) + "</td>" +
+      "<td>" + (t ? fmtPrice(t.trade_price) : "-") + "</td>" +
+      '<td class="' + rateCls + '">' + (t ? fmtRate(rate) : "-") + "</td>" +
+      "<td>" + (t ? fmtVolume(t.acc_trade_price_24h) : "-") + "</td>" +
+      "<td>" + badgeHtml(m.symbol) + "</td>" +
+      "</tr>";
+  }
+  if (!html) html = '<tr><td colspan="6" style="text-align:center; padding: 30px;">검색 결과가 없습니다.</td></tr>';
+  $("coinTbody").innerHTML = html;
+  updateSortHeaders(); // 렌더링 시마다 지시자 최신화
+}
+
+// 한국어 날짜 포맷터
+function formatKoreanDate(dateStr) {
+  if (!dateStr) return "정보 없음";
+  try {
+    var d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    return d.getFullYear() + ". " + (d.getMonth() + 1) + ". " + d.getDate() + ".";
+  } catch (e) {
+    return dateStr;
+  }
+}
+
+// GitHub 최신 릴리스 연동
+function fetchGithubRelease(ownerRepo) {
+  var url = "https://api.github.com/repos/" + ownerRepo + "/releases/latest";
+  return fetch(url)
+    .then(function (res) {
+      if (!res.ok) {
+        if (res.status === 404) return null;
+        throw new Error("HTTP " + res.status);
+      }
+      return res.json();
+    })
+    .then(function (data) {
+      if (!data) return null;
+      return {
+        tag_name: data.tag_name || "",
+        published_at: data.published_at || ""
+      };
+    })
+    .catch(function (err) {
+      console.warn("GitHub Release fetch failed:", ownerRepo, err);
+      return null;
+    });
+}
+
+// CoinPaprika 최근 이벤트 연동
+function fetchPaprikaEvents(paprikaId) {
+  var url = "https://api.coinpaprika.com/v1/coins/" + encodeURIComponent(paprikaId) + "/events";
+  return smartFetch(url)
+    .then(function (list) {
+      if (!Array.isArray(list)) return [];
+      var sorted = list.sort(function (a, b) {
+        return new Date(b.date).getTime() - new Date(a.date).getTime();
+      });
+      return sorted.slice(0, 5).map(function (ev) {
+        return {
+          date: ev.date || "",
+          name: ev.name || "",
+          link: ev.link || "",
+          description: ev.description || ""
+        };
+      });
+    })
+    .catch(function (err) {
+      console.warn("CoinPaprika Events fetch failed:", paprikaId, err);
+      return [];
+    });
+}
+
+// ---------- GitHub REST API 직접 연동 (CORS 프리패스, 초고속 로딩) ----------
+function fetchGithubData(ownerRepo) {
+  var infoUrl = "https://api.github.com/repos/" + ownerRepo;
+  var commitUrl = "https://api.github.com/repos/" + ownerRepo + "/commits?per_page=100";
+  
+  return Promise.all([
+    fetch(infoUrl).then(function(r) {
+      if (!r.ok) throw new Error("GitHub Repo Status: " + r.status);
+      return r.json();
+    }),
+    fetch(commitUrl).then(function(r) {
+      if (!r.ok) throw new Error("GitHub Commits Status: " + r.status);
+      return r.json();
+    })
+  ]).then(function(results) {
+    var info = results[0] || {};
+    var commits = results[1];
+
+    if (!Array.isArray(commits)) {
+      throw new Error("GitHub Commits is not an array");
+    }
+
+    // 4주 전 타임스탬프 계산
+    var fourWeeksAgo = Date.now() - (28 * 24 * 3600 * 1000);
+    var commit4w = 0;
+    var weeklyTrend = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+
+    commits.forEach(function(c) {
+      if (!c || !c.commit) return;
+      
+      // author가 null일 때 committer 정보를 백업으로 사용 (Null Pointer Reference 예방)
+      var dateObj = c.commit.author || c.commit.committer;
+      if (!dateObj || !dateObj.date) return;
+
+      var date = new Date(dateObj.date).getTime();
+      if (isNaN(date)) return;
+
+      if (date >= fourWeeksAgo) {
+        commit4w++;
+      }
+
+      var ageMs = Date.now() - date;
+      var weekIdx = Math.floor(ageMs / (7 * 24 * 3600 * 1000));
+      if (weekIdx >= 0 && weekIdx < 10) {
+        weeklyTrend[9 - weekIdx]++;
+      }
+    });
+
+    // 최근 커밋 5건 추출
+    var recentCommits = commits.slice(0, 5).map(function (c) {
+      var dateObj = c.commit.author || c.commit.committer;
+      var dateStr = dateObj ? dateObj.date : "";
+      var messageStr = c.commit.message || "";
+      return {
+        date: dateStr,
+        message: messageStr.split("\n")[0]
+      };
+    });
+
+    return {
+      stars: info.stargazers_count || 0,
+      forks: info.forks_count || 0,
+      watchers: info.subscribers_count || 0,
+      open_issues: info.open_issues_count || 0,
+      description: info.description || "설명 없음",
+      language: info.language || "미정",
+      license: (info.license && info.license.name) || "없음",
+      pushed_at: info.pushed_at || new Date().toISOString(),
+      commits_4w: commit4w,
+      trend: weeklyTrend,
+      repo_url: info.html_url || "",
+      recent_commits: recentCommits
+    };
+  });
+}
+
+// ---------- CoinPaprika API 연동 및 매핑 설계 ----------
+function ensurePaprikaMap() {
+  if (paprikaPromise) return paprikaPromise;
+  var cached = lsGet(LS_PAPRIKA_MAP_KEY, TTL_PAPRIKA_MAP_MS);
+  if (cached) {
+    paprikaMap = cached;
+    return Promise.resolve(paprikaMap);
+  }
+  paprikaPromise = smartFetch("https://api.coinpaprika.com/v1/coins")
+    .then(function(list) {
+      if (!Array.isArray(list)) throw new Error("Paprika list is not an array");
+      var map = {};
+      list.forEach(function(coin) {
+        if (!coin.symbol) return;
+        var sym = coin.symbol.toLowerCase();
+        var rank = Number(coin.rank) || 999999;
+        // 동일 심볼 후보 중 시총 순위(rank)가 가장 낮아 지표 인지도 높은 1위 녀석만 선택
+        if (!map[sym] || rank < map[sym].rank) {
+          map[sym] = { id: coin.id, rank: rank };
+        }
+      });
+      var slimMap = {};
+      for (var k in map) {
+        slimMap[k] = map[k].id;
+      }
+      paprikaMap = slimMap;
+      lsSet(LS_PAPRIKA_MAP_KEY, paprikaMap);
+      return paprikaMap;
+    });
+  return paprikaPromise;
+}
+
+function fetchPaprikaData(paprikaId) {
+  var url = "https://api.coinpaprika.com/v1/coins/" + encodeURIComponent(paprikaId);
+  return smartFetch(url)
+    .then(function(data) {
+      var res = { reddit: 0, twitter: 0, telegram: 0 };
+      if (data && Array.isArray(data.links_extended)) {
+        data.links_extended.forEach(function(link) {
+          var type = String(link.type || "").toLowerCase();
+          var stats = link.stats || {};
+          if (type === "reddit" && stats.subscribers) res.reddit = Number(stats.subscribers);
+          if (type === "twitter" && stats.followers) res.twitter = Number(stats.followers);
+          if (type === "telegram" && stats.members) res.telegram = Number(stats.members);
+        });
+      }
+      return res;
+    });
+}
+
+// ---------- SVG 스파크라인 차트 드로잉 (Rich UI) ----------
+function renderSparkline(trend) {
+  if (!trend || trend.length === 0) return "";
+  var max = Math.max.apply(null, trend);
+  if (max === 0) max = 1;
+  
+  var width = 340;
+  var height = 50;
+  var padding = 5;
+  var points = [];
+  var step = width / (trend.length - 1);
+  
+  for (var i = 0; i < trend.length; i++) {
+    var x = i * step;
+    var y = height - padding - ((trend[i] / max) * (height - padding * 2));
+    points.push(x + "," + y);
+  }
+  
+  var pathD = "M " + points.join(" L ");
+  var areaD = pathD + " L " + (width) + "," + height + " L 0," + height + " Z";
+  
+  var svg = '<svg class="sparkline-svg" viewBox="0 0 ' + width + ' ' + height + '" xmlns="http://www.w3.org/2000/svg">' +
+    '<defs>' +
+      '<linearGradient id="glow" x1="0" y1="0" x2="0" y2="1">' +
+        '<stop offset="0%" stop-color="#4f7cff" stop-opacity="0.4"/>' +
+        '<stop offset="100%" stop-color="#4f7cff" stop-opacity="0"/>' +
+      '</linearGradient>' +
+    '</defs>' +
+    '<path d="' + areaD + '" fill="url(#glow)" />' +
+    '<path d="' + pathD + '" fill="none" stroke="#4f7cff" stroke-width="2" />' +
+    '</svg>';
+  return svg;
+}
+
+// ---------- 캐시 및 상세 보기 렌더링 ----------
+function prefillGradesFromCache() {
+  markets.forEach(function (m) {
+    if (gradeBySymbol[m.symbol]) return;
+    var cached = lsGet(LS_DETAIL_PREFIX + m.symbol, TTL_DETAIL_MS);
+    if (cached) {
+      gradeBySymbol[m.symbol] = {
+        cls: cached.cls,
+        label: cached.label,
+        commits: cached.commits
+      };
+    }
+  });
+  renderTable();
+  updateSummaryStats();
+}
+
+function openDetail(marketCode) {
+  var m = markets.find(function(x) { return x.market === marketCode; });
+  if (!m) return;
+  selectedMarket = marketCode;
+  renderTable();
+  
+  var seq = ++detailSeq;
+  $("detailPanel").innerHTML = "<h2>" + esc(m.korean_name) + " (" + esc(m.symbol) + ")</h2>" +
+    '<div class="panel-msg">오픈소스 및 커뮤니티 지표 실시간 수집 중...</div>';
+    
+  var symbolLower = m.symbol.toLowerCase();
+  
+  // 캐시 확인
+  var cached = lsGet(LS_DETAIL_PREFIX + m.symbol, TTL_DETAIL_MS);
+  if (cached) {
+    renderDetailPanel(m, cached);
+    return;
+  }
+
+  // 데이터 소스 비동기 병렬 호출 파이프라인
+  var gitHubRepo = STATIC_GITHUB_MAP[symbolLower];
+  var cgId = STATIC_MAP[symbolLower];
+  
+  // 1) GitHub API
+  var gitPromise = gitHubRepo 
+    ? fetchGithubData(gitHubRepo).catch(function(e) { console.warn("GitHub API error:", e); return null; })
+    : Promise.resolve(null);
+    
+  // 2) CoinGecko 상세 API
+  var cgPromise = cgId
+    ? smartFetch(CG_DETAIL(cgId)).catch(function(e) { console.warn("CoinGecko API error:", e); return null; })
+    : Promise.resolve(null);
+    
+  // 3) CoinPaprika API (매핑 확인 후 상세 호출)
+  var paprikaPromise = ensurePaprikaMap()
+    .then(function(pMap) {
+      var pId = pMap[symbolLower];
+      if (pId) {
+        return fetchPaprikaData(pId).catch(function(e) { console.warn("CoinPaprika API error:", e); return null; });
+      }
+      return null;
+    })
+    .catch(function(e) { console.warn("CoinPaprika mapping error:", e); return null; });
+
+  // 4) GitHub 최신 릴리스 API
+  var gitReleasePromise = gitHubRepo
+    ? fetchGithubRelease(gitHubRepo).catch(function(e) { console.warn("GitHub Release API error:", e); return null; })
+    : Promise.resolve(null);
+
+  // 5) CoinPaprika 이벤트 API
+  var paprikaEventsPromise = ensurePaprikaMap()
+    .then(function(pMap) {
+      var pId = pMap[symbolLower];
+      if (pId) {
+        return fetchPaprikaEvents(pId).catch(function(e) { console.warn("CoinPaprika Events API error:", e); return []; });
+      }
+      return [];
+    })
+    .catch(function(e) { console.warn("CoinPaprika event mapping error:", e); return []; });
+
+  Promise.all([gitPromise, cgPromise, paprikaPromise, gitReleasePromise, paprikaEventsPromise])
+    .then(function(results) {
+      if (seq !== detailSeq) return;
+      
+      var gitData = results[0];
+      var cgData = results[1];
+      var paprikaData = results[2];
+      var gitRelease = results[3];
+      var paprikaEvents = results[4];
+
+      // 최소한의 데이터도 수집 실패 시 예외 처리
+      if (!gitData && !cgData && !paprikaData) {
+        setNoDataPanel(m, "오픈소스 저장소 및 실시간 지표를 로드하지 못했습니다.");
+        return;
+      }
+
+      // 개발 지표 수집
+      var commit4w = gitData ? gitData.commits_4w : (cgData && cgData.developer_data ? (cgData.developer_data.commit_count_4_weeks || 0) : 0);
+      var grade = computeGradeFromCommits(commit4w);
+      
+      // 커뮤니티 데이터 병합 (최대값 채택 + 출처 명시)
+      // A. 레딧 구독자
+      var redditVal = 0;
+      var redditSrc = "";
+      if (cgData && cgData.community_data && cgData.community_data.reddit_subscribers) {
+        redditVal = Number(cgData.community_data.reddit_subscribers);
+        redditSrc = "CoinGecko";
+      }
+      if (paprikaData && paprikaData.reddit && paprikaData.reddit > redditVal) {
+        redditVal = paprikaData.reddit;
+        redditSrc = "CoinPaprika";
+      }
+
+      // B. X (트위터) 팔로워
+      var twitterVal = 0;
+      var twitterSrc = "";
+      if (paprikaData && paprikaData.twitter) {
+        twitterVal = paprikaData.twitter;
+        twitterSrc = "CoinPaprika";
+      }
+
+      // C. 텔레그램 멤버
+      var telegramVal = 0;
+      var telegramSrc = "";
+      if (cgData && cgData.community_data && cgData.community_data.telegram_channel_user_count) {
+        telegramVal = Number(cgData.community_data.telegram_channel_user_count);
+        telegramSrc = "CoinGecko";
+      }
+      if (paprikaData && paprikaData.telegram && paprikaData.telegram > telegramVal) {
+        telegramVal = paprikaData.telegram;
+        telegramSrc = "CoinPaprika";
+      }
+
+      // 설명글 추출
+      var desc = "설명 없음";
+      if (gitData && gitData.description && gitData.description !== "설명 없음") {
+        desc = gitData.description;
+      } else if (cgData && cgData.description) {
+        if (typeof cgData.description === "object") {
+          desc = cgData.description.ko || cgData.description.en || "설명 없음";
+        } else {
+          desc = String(cgData.description);
+        }
+      }
+      if (desc.length > 150) {
+        desc = desc.substring(0, 150) + "...";
+      }
+
+      // 링크 정보
+      var repoUrl = gitData ? gitData.repo_url : (cgData && cgData.links && cgData.links.repos_url && cgData.links.repos_url.github && cgData.links.repos_url.github[0]) || "";
+      var twitterScreen = cgData && cgData.links && cgData.links.twitter_screen_name;
+      var subReddit = cgData && cgData.links && cgData.links.subreddit_url;
+
+      var profile = {
+        name: m.korean_name,
+        symbol: m.symbol,
+        source: gitData ? "github" : (cgData ? "coingecko" : "coinpaprika"),
+        cls: grade.cls,
+        label: grade.label,
+        stars: gitData ? gitData.stars : (cgData && cgData.developer_data ? (cgData.developer_data.stars || 0) : 0),
+        forks: gitData ? gitData.forks : (cgData && cgData.developer_data ? (cgData.developer_data.forks || 0) : 0),
+        watchers: gitData ? gitData.watchers : (cgData && cgData.developer_data ? (cgData.developer_data.subscribers || 0) : 0),
+        open_issues: gitData ? gitData.open_issues : (cgData && cgData.developer_data ? (cgData.developer_data.total_issues || 0) : 0),
+        commits: commit4w,
+        trend: gitData ? gitData.trend : [0,0,0,0,0,0,0,0,0,commit4w],
+        description: desc,
+        language: gitData ? gitData.language : "기타",
+        license: gitData ? gitData.license : "정보 없음",
+        pushed_at: gitData ? new Date(gitData.pushed_at).toLocaleDateString() : (cgData ? "최근 동기화" : "정보 없음"),
+        repo_url: repoUrl,
+        
+        // 병합된 소셜 데이터
+        reddit_sub: redditVal,
+        reddit_src: redditSrc,
+        twitter_sub: twitterVal,
+        twitter_src: twitterSrc,
+        telegram_sub: telegramVal,
+        telegram_src: telegramSrc,
+        
+        // 링크
+        twitter_screen: twitterScreen,
+        subreddit_url: subReddit,
+
+        // 신규 자료
+        latest_release: gitRelease,
+        recent_commits: gitData ? gitData.recent_commits : [],
+        events: paprikaEvents
+      };
+
+      // 캐시 저장
+      lsSet(LS_DETAIL_PREFIX + m.symbol, profile);
+      gradeBySymbol[m.symbol] = { cls: grade.cls, label: grade.label, commits: commit4w };
+      renderTable();
+      updateSummaryStats();
+      renderDetailPanel(m, profile);
+    })
+    .catch(function(err) {
+      if (seq !== detailSeq) return;
+      handleCgFail(m, err);
+    });
+}
+
+function renderDetailPanel(m, profile) {
+  var html = "<h2>" + esc(m.korean_name) + " (" + esc(m.symbol) + ") " +
+    '<span class="badge ' + profile.cls + '">' + esc(profile.label) + "</span></h2>";
+  
+  var sources = [];
+  if (profile.source === "github") sources.push("GitHub");
+  if (profile.source === "coingecko") sources.push("CoinGecko");
+  if (profile.source === "coinpaprika") sources.push("CoinPaprika");
+  
+  html += '<div class="meta" style="margin-bottom:12px;">데이터 출처: ' + sources.join(", ") + '</div>';
+  html += '<div class="desc-box">' + esc(profile.description) + '</div>';
+  
+  // 개발 핵심 정보
+  html += "<h3>실시간 개발 핵심 지표</h3>";
+  html += kvRow("프로그래밍 언어", '<span style="color:var(--accent); font-weight:600;">' + esc(profile.language) + '</span>');
+  
+  // 최신 릴리스 렌더링
+  if (profile.latest_release) {
+    html += kvRow("최신 릴리스", '<span class="badge g-active" style="padding:2px 8px; font-size:11px;">' + esc(profile.latest_release.tag_name) + '</span> <span style="font-size:12px; color:var(--text-sub);">' + formatKoreanDate(profile.latest_release.published_at) + '</span>');
+  }
+
+  html += kvRow("스타 개수 (인기도)", fmtInt(profile.stars));
+  html += kvRow("포크 개수 (참여도)", fmtInt(profile.forks));
+  html += kvRow("오픈 이슈 개수", fmtInt(profile.open_issues));
+  html += kvRow("최근 4주 개발 커밋", '<span style="color:#4ade80; font-weight:700;">' + fmtInt(profile.commits) + '회</span>');
+  html += kvRow("마지막 코드 반영일", esc(profile.pushed_at));
+  
+  // 차트 시각화
+  if (profile.trend && profile.trend.length > 0) {
+    html += '<div class="chart-wrap">';
+    html += '  <div class="chart-title-wrap"><span>최근 10주 커밋 추이</span><span>최대 ' + Math.max.apply(null, profile.trend) + 'commits</span></div>';
+    html += renderSparkline(profile.trend);
+    html += '</div>';
+  }
+  
+  // 최근 커밋 5건 목록
+  if (profile.recent_commits && profile.recent_commits.length > 0) {
+    html += "<h3>최근 개발 활동 (커밋 내역)</h3>";
+    html += '<div style="background:rgba(255,255,255,0.02); border:1px solid var(--border-light); border-radius:10px; padding:12px; font-size:12.5px; display:flex; flex-direction:column; gap:8px; margin-bottom:12px;">';
+    profile.recent_commits.forEach(function (c, idx) {
+      var isLast = idx === profile.recent_commits.length - 1;
+      var borderStyle = isLast ? "" : "border-bottom:1px dashed rgba(255,255,255,0.04); padding-bottom:6px; margin-bottom:2px;";
+      html += '<div style="display:flex; flex-direction:column; ' + borderStyle + '">' +
+        '  <div style="display:flex; justify-content:space-between; margin-bottom:2px;">' +
+        '    <span style="text-overflow:ellipsis; overflow:hidden; white-space:nowrap; max-width:280px; color:var(--text-main);" title="' + esc(c.message) + '">📝 ' + esc(c.message) + '</span>' +
+        '  </div>' +
+        '  <span style="font-size:10px; color:var(--text-sub); text-align:right;">' + formatKoreanDate(c.date) + '</span>' +
+        '</div>';
+    });
+    html += '</div>';
+  }
+
+  // 커뮤니티 지표 병합 처리
+  var hasCommunity = false;
+  var comHtml = "<h3>커뮤니티 지표</h3>";
+  
+  if (profile.reddit_sub) {
+    comHtml += kvRow("레딧 구독자", '<span class="v">' + fmtKoreanUnit(profile.reddit_sub) + '</span> <span style="font-size:10px; color:var(--text-sub);">(' + profile.reddit_src + ')</span>');
+    hasCommunity = true;
+  }
+  if (profile.twitter_sub) {
+    comHtml += kvRow("X (트위터) 팔로워", '<span class="v">' + fmtKoreanUnit(profile.twitter_sub) + '</span> <span style="font-size:10px; color:var(--text-sub);">(' + profile.twitter_src + ')</span>');
+    hasCommunity = true;
+  }
+  if (profile.telegram_sub) {
+    comHtml += kvRow("공식 텔레그램 인원", '<span class="v">' + fmtKoreanUnit(profile.telegram_sub) + '</span> <span style="font-size:10px; color:var(--text-sub);">(' + profile.telegram_src + ')</span>');
+    hasCommunity = true;
+  }
+  
+  if (hasCommunity) {
+    html += comHtml;
+  } else {
+    html += "<h3>커뮤니티 지표</h3>";
+    html += '<div class="panel-msg">활성화된 커뮤니티 정보가 없습니다. (CoinPaprika, CoinGecko 등)</div>';
+  }
+
+  // CoinPaprika 주요 이벤트
+  if (profile.events && profile.events.length > 0) {
+    html += "<h3>주요 이벤트</h3>";
+    html += '<div style="background:rgba(255,255,255,0.02); border:1px solid var(--border-light); border-radius:10px; padding:12px; font-size:12.5px; display:flex; flex-direction:column; gap:8px; margin-bottom:12px;">';
+    profile.events.forEach(function (ev, idx) {
+      var isLast = idx === profile.events.length - 1;
+      var borderStyle = isLast ? "" : "border-bottom:1px dashed rgba(255,255,255,0.04); padding-bottom:6px; margin-bottom:2px;";
+      
+      // 1년 이상 경과 여부
+      var diffMs = Date.now() - new Date(ev.date).getTime();
+      var isOld = diffMs > (365 * 24 * 3600 * 1000);
+      var dateLabel = formatKoreanDate(ev.date) + (isOld ? " <span style='color:var(--up-red); font-size:10.5px;'>(오래됨)</span>" : "");
+
+      html += '<div style="display:flex; flex-direction:column; ' + borderStyle + '">' +
+        '  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">' +
+        '    <span style="font-weight:600; color:var(--accent-purple);">' + dateLabel + '</span>';
+      if (ev.link) {
+        html += '    <a href="' + esc(ev.link) + '" target="_blank" rel="noopener" style="color:var(--accent); text-decoration:none; font-size:11px;">상세 ↗</a>';
+      }
+      html += '  </div>' +
+        '  <div style="color:var(--text-main); font-size:12px;">' + esc(ev.name) + '</div>' +
+        '</div>';
+    });
+    html += '</div>';
+  }
+
+  // 아웃링크 버튼
+  html += '<h3 style="margin-top:14px;">공식 아웃링크</h3><div class="links">';
+  if (profile.repo_url) {
+    html += '<a href="' + esc(profile.repo_url) + '" target="_blank" rel="noopener">🌐 GitHub 저장소</a>';
+  }
+  var coingeckoUrl = STATIC_MAP[m.symbol.toLowerCase()] 
+    ? "https://www.coingecko.com/ko/coins/" + STATIC_MAP[m.symbol.toLowerCase()]
+    : "https://www.coingecko.com";
+  html += '<a href="' + coingeckoUrl + '" target="_blank" rel="noopener">📊 CoinGecko</a>';
+  
+  if (profile.twitter_screen) {
+    html += '<a href="https://x.com/' + encodeURIComponent(profile.twitter_screen) + '" target="_blank" rel="noopener">🐦 X (트위터)</a>';
+  }
+  if (profile.subreddit_url) {
+    html += '<a href="' + esc(profile.subreddit_url) + '" target="_blank" rel="noopener">👾 Reddit</a>';
+  }
+  
+  // 구글 뉴스 검색 링크
+  var googleNewsUrl = "https://news.google.com/search?q=" + encodeURIComponent(m.korean_name) + "+코인&hl=ko";
+  html += '<a href="' + googleNewsUrl + '" target="_blank" rel="noopener">📰 Google 뉴스 검색</a>';
+
+  html += '<a href="https://api.upbit.com/v1/market/all" target="_blank" rel="noopener">📈 Upbit API</a>';
+  html += "</div>";
+
+  $("detailPanel").innerHTML = html;
+}
+
+function setNoDataPanel(m, reason) {
+  gradeBySymbol[m.symbol] = { cls: "g-none", label: "데이터 없음", commits: 0 };
+  renderTable();
+  updateSummaryStats();
+  
+  $("detailPanel").innerHTML = "<h2>" + esc(m.korean_name) + " (" + esc(m.symbol) + ") " +
+    '<span class="badge g-none">데이터 없음</span></h2>' +
+    '<div class="desc-box" style="margin-top: 14px; background: rgba(255, 74, 90, 0.05); border: 1px solid rgba(255, 74, 90, 0.2); color: #ff8a92;">' +
+    esc(reason) + 
+    '</div>' +
+    '<div class="panel-msg">비공개 개발 중이거나 오픈소스 코드가 구축되지 않은 프로젝트는 실시간 지표 수집이 불가합니다.</div>';
+}
+
+function handleCgFail(m, err) {
+  if (err && err.status === 429) {
+    $("detailPanel").innerHTML = "<h2>" + esc(m.korean_name) + " (" + esc(m.symbol) + ")</h2>" +
+      '<div class="panel-warn">API 요청 한도를 일시적으로 초과했습니다.<br>CORS 우회 우려로 인한 것이니 잠시 후 다시 클릭해 주세요.</div>';
+  } else {
+    setNoDataPanel(m, "네트워크 타임아웃 또는 데이터가 CoinGecko/CoinPaprika에서 로드되지 않았습니다.");
+  }
+}
+
+// ---------- 이벤트 핸들링 ----------
+function bindEvents() {
+  $("searchInput").addEventListener("input", function (e) {
+    searchTerm = e.target.value;
+    renderTable();
+  });
+  document.querySelectorAll("th.sortable").forEach(function (th) {
+    th.addEventListener("click", function () {
+      var key = th.getAttribute("data-key");
+      if (sortKey === key) {
+        sortDesc = !sortDesc;
+      } else {
+        sortKey = key;
+        if (key === "korean_name" || key === "symbol") {
+          sortDesc = false; // 문자 컬럼은 첫 클릭 시 오름차순 (가나다, A-Z)
+        } else {
+          sortDesc = true;  // 숫자 컬럼은 첫 클릭 시 내림차순 (큰 수 우선)
+        }
+      }
+      renderTable();
+    });
+  });
+  $("coinTbody").addEventListener("click", function (e) {
+    var tr = e.target.closest("tr");
+    if (!tr || !tr.getAttribute("data-market")) return;
+    openDetail(tr.getAttribute("data-market"));
+  });
+}
+
+function kvRow(k, v) {
+  return '<div class="kv"><span class="k">' + esc(k) + '</span><span class="v">' + v + '</span></div>';
+}
+
+// ---------- 초기화 ----------
+function init() {
+  bindEvents();
+  loadMarkets()
+    .then(function () {
+      renderTable();
+      refreshTickers();
+      setInterval(refreshTickers, TICKER_INTERVAL_MS);
+      prefillGradesFromCache();
+      // 백그라운드에서 파프리카 매핑 테이블 미리 로드
+      ensurePaprikaMap().catch(function(e) { console.warn("Background Paprika mapping failed:", e); });
+    })
+    .catch(function () {
+      $("coinTbody").innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 40px; color: var(--up-red);">업비트 연동 오류. 네트워크 상태를 재확인하고 새로고침해 주세요.</td></tr>';
+    });
+}
+init();
+</script>
+</body>
+</html>
