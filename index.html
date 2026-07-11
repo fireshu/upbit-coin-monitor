@@ -811,10 +811,23 @@ if (!API_BASE || API_BASE.indexOf("loca.lt") !== -1) {
 }
 var isBackendOnline = false;
 
+function getApiHeaders(customHeaders) {
+  var headers = {
+    "serveo-skip-browser-warning": "true",
+    "bypass-tunnel-reminder": "true"
+  };
+  if (customHeaders) {
+    for (var key in customHeaders) {
+      headers[key] = customHeaders[key];
+    }
+  }
+  return headers;
+}
+
 // 백엔드 서버 헬스체크 (CORS 및 HTTPS 통신가능 감지, 2.5초 제한)
 function checkBackendHealth() {
   var checkUrl = API_BASE + "/api/anomaly-check";
-  return fetchWithTimeout(checkUrl, null, 2500)
+  return fetchWithTimeout(checkUrl, { headers: getApiHeaders() }, 2500)
     .then(function (res) {
       isBackendOnline = res.ok;
       return isBackendOnline;
@@ -1022,12 +1035,16 @@ function saveConfig() {
 // ---------- 타임아웃 지원 fetch 헬퍼 (기본 10초) ----------
 function fetchWithTimeout(url, options, timeoutMs) {
   var limit = timeoutMs || 10000;
+  var opt = options || {};
+  if (url.indexOf("http") === 0 && (url.indexOf(API_BASE) === 0 || url.indexOf("serveo") !== -1 || url.indexOf("loca.lt") !== -1)) {
+    opt.headers = getApiHeaders(opt.headers);
+  }
   return new Promise(function (resolve, reject) {
     var timer = setTimeout(function () {
       reject(new Error("Request Timeout (" + limit + "ms): " + url));
     }, limit);
 
-    fetch(url, options)
+    fetch(url, opt)
       .then(function (res) {
         clearTimeout(timer);
         resolve(res);
@@ -1934,11 +1951,11 @@ function translateAndRenderProfile(m, profile, commit4w, grade, seq) {
     commits: profile.recent_commits ? profile.recent_commits.map(function(c) { return c.message; }) : []
   };
 
-  fetch(API_BASE + '/api/translate-profile', {
+  fetchWithTimeout(API_BASE + '/api/translate-profile', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(translatePayload)
-  })
+  }, 10000)
   .then(function(res) { return res.json(); })
   .then(function(transData) {
     if (seq !== undefined && seq !== detailSeq) return;
@@ -2328,7 +2345,7 @@ function triggerAIOpinionRequest(m, profile) {
 
   fetch(API_BASE + '/api/ai-opinion', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: getApiHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify(payload),
     signal: controller.signal
   })
@@ -2379,7 +2396,7 @@ function runLiveBacktest() {
   
   fetch(API_BASE + '/api/backtest', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: getApiHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify({ rsi_period: rsiPeriod, rsi_buy: rsiBuy, rsi_sell: rsiSell })
   })
   .then(function(res) { return res.json(); })
@@ -2410,7 +2427,7 @@ function runLiveBacktest() {
 
 // AI 가격 이상 탐지 (Anomaly Detection) 폴링 연동
 function pollAnomalyCheck() {
-  fetch(API_BASE + '/api/anomaly-check')
+  fetchWithTimeout(API_BASE + '/api/anomaly-check', null, 8000)
     .then(function(res) { return res.json(); })
     .then(function(data) {
       var badge = document.getElementById("anomalyAlertBadge");
