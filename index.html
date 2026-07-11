@@ -899,6 +899,97 @@
   .bold { font-weight: 700; }
   .mono { font-family: 'JetBrains Mono', monospace; }
 
+  /* ===== 텍스트 하이라이팅 & 가독성 개선 ===== */
+  .desc-box {
+    margin-top: 14px;
+    background: rgba(18, 24, 38, 0.5);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 14px 16px;
+    font-size: 13px;
+    line-height: 1.65;
+    color: #cbd5e1;
+    word-break: keep-all;
+    box-shadow: inset 0 0 10px rgba(118, 185, 0, 0.03);
+  }
+
+  .highlight-point {
+    color: #c0f26d !important;
+    background: rgba(118, 185, 0, 0.18) !important;
+    border: 1px solid rgba(118, 185, 0, 0.35) !important;
+    padding: 1px 5px !important;
+    border-radius: 4px !important;
+    font-weight: 700 !important;
+    display: inline-block !important;
+    margin: 0 2px !important;
+    box-shadow: 0 0 8px rgba(118, 185, 0, 0.15);
+  }
+
+  .highlight-pos {
+    color: #4ade80 !important;
+    font-weight: 700 !important;
+  }
+
+  .highlight-neg {
+    color: #f87171 !important;
+    font-weight: 700 !important;
+  }
+
+  .highlight-core {
+    color: #fbbf24 !important;
+    font-weight: 600 !important;
+  }
+
+  .highlight-pct-up {
+    color: #4ade80 !important;
+    font-weight: 700 !important;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .highlight-pct-down {
+    color: #ff4a5a !important;
+    font-weight: 700 !important;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .bullet-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 6px;
+    font-size: 13px;
+    line-height: 1.65;
+  }
+
+  .bullet-dot {
+    color: var(--accent);
+    font-size: 10px;
+    margin-top: 3px;
+    text-shadow: 0 0 6px var(--accent);
+    flex-shrink: 0;
+  }
+
+  .bullet-num {
+    background: rgba(118, 185, 0, 0.15);
+    border: 1px solid rgba(118, 185, 0, 0.3);
+    color: var(--accent);
+    font-size: 9px;
+    font-weight: 700;
+    width: 15px;
+    height: 15px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    margin-top: 3px;
+    flex-shrink: 0;
+  }
+
+  .text-line {
+    margin-bottom: 8px;
+    line-height: 1.65;
+  }
+
 </style>
 </head>
 <body>
@@ -1190,6 +1281,52 @@ function esc(s) {
   return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
     return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
   });
+}
+function formatHighlightText(text) {
+  if (!text) return "";
+  var escaped = esc(text);
+  escaped = escaped.replace(/\*\*(.*?)\*\*/g, function(match, p1) {
+    return '<strong class="highlight-point">' + p1 + '</strong>';
+  });
+
+  var tokens = escaped.split(/(<[^>]+>)/g);
+  for (var i = 0; i < tokens.length; i++) {
+    if (tokens[i] && tokens[i].charAt(0) !== '<') {
+      var s = tokens[i];
+      var posTerms = ["호재", "돌파", "급등", "상승", "최고", "활발", "우수", "긍정", "기여", "성장", "반등", "유입", "축적"];
+      var posRegex = new RegExp("(" + posTerms.join("|") + ")", "g");
+      s = s.replace(posRegex, '<span class="highlight-pos">$1</span>');
+      var negTerms = ["악재", "하락", "폭락", "침체", "정체", "경고", "리스크", "해킹", "이탈", "매도", "매각", "유출", "소송", "규제", "금지"];
+      var negRegex = new RegExp("(" + negTerms.join("|") + ")", "g");
+      s = s.replace(negRegex, '<span class="highlight-neg">$1</span>');
+      var coreTerms = ["커밋", "기여", "스타", "포크", "업비트", "바이낸스", "김프", "USDT", "롱", "숏"];
+      var coreRegex = new RegExp("(" + coreTerms.join("|") + ")", "g");
+      s = s.replace(coreRegex, '<span class="highlight-core">$1</span>');
+      s = s.replace(/(\+\d+(?:\.\d+)?%)/g, '<span class="highlight-pct-up">$1</span>');
+      s = s.replace(/(-\d+(?:\.\d+)?%)/g, '<span class="highlight-pct-down">$1</span>');
+      tokens[i] = s;
+    }
+  }
+  escaped = tokens.join("");
+
+  var lines = escaped.split(/\r?\n/);
+  var htmlLines = [];
+  for (var j = 0; j < lines.length; j++) {
+    var line = lines[j].trim();
+    if (!line) continue;
+    var bulletMatch = line.match(/^[\-\*•\+]\s*(.*)/);
+    if (bulletMatch) {
+      htmlLines.push('<div class="bullet-item"><span class="bullet-dot">✦</span><span>' + bulletMatch[1] + '</span></div>');
+      continue;
+    }
+    var numMatch = line.match(/^(\d+)[\.\)]\s*(.*)/);
+    if (numMatch) {
+      htmlLines.push('<div class="bullet-item"><span class="bullet-num">' + numMatch[1] + '</span><span>' + numMatch[2] + '</span></div>');
+      continue;
+    }
+    htmlLines.push('<div class="text-line">' + line + '</div>');
+  }
+  return htmlLines.join("");
 }
 function toggleFavorite(marketCode, event) {
   if (event) {
@@ -2556,7 +2693,7 @@ function triggerAIOpinionRequest(m, profile) {
     
     function clean(txt) {
       var cleanTxt = txt.replace(/^[\s\-\*•]*\d*\.?\s*(🧠|📈|📉)?\s*(로컬\s*AI\s*)?(종합\s*의견|종합\s*진단|주요\s*호재|호재\s*소식|긍정\s*요소|주요\s*악재|악재\s*소식|악재\s*리스크|위험\s*요소|Bearish|Bullish|리스크|경고|호재|악재)\s*\(?[a-zA-Z]*\)?\s*(및\s*새로운\s*소식|및\s*리스크)?\s*[:：\-\s]*/i, "");
-      return esc(cleanTxt).replace(/\n/g, '<br>');
+      return formatHighlightText(cleanTxt);
     }
     
     var badgeClass = isMeme ? "g-dead" : "g-active";
@@ -2741,7 +2878,7 @@ function renderDetailPanel(m, profile) {
   if (profile.source === "coinpaprika") sources.push("CoinPaprika");
   
   html += '<div class="meta" style="margin-bottom:12px;">데이터 출처: ' + sources.join(", ") + '</div>';
-  html += '<div class="desc-box">' + esc(profile.description) + '</div>';
+  html += '<div class="desc-box">' + formatHighlightText(profile.description) + '</div>';
   
   // 1. 바이낸스 비교 섹션 컨테이너 추가 (비동기로 채워짐)
   html += '<div id="binanceCompareSection" style="margin-top:18px;">' +
