@@ -1,2 +1,4 @@
 autobackup/
 *.md
+*.log
+cloudflared.exe
