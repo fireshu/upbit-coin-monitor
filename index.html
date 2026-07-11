@@ -2233,29 +2233,6 @@ function getAIOpinionSkeletonHtml() {
 }
 
 function triggerAIOpinionRequest(m, profile) {
-  // 선제 헬스체크 검사 결과 백엔드가 연결 불능 상태라면 45초 지연 대기하지 않고 즉각 Mixed Content / 오프라인 경고 노출
-  if (isBackendOnline === false) {
-    var isHttps = window.location.protocol === "https:";
-    var reason = "로컬 퀀트 서버(server.py)가 기동되지 않았습니다. PC의 터미널에서 server.py 실행 상태를 점검해 주십시오.";
-    if (isHttps) {
-      reason = "현재 보안 연결(HTTPS) 환경입니다. 브라우저 보안 정책(Mixed Content)으로 인해 비보안 로컬 API(http) 직접 연결이 차단됩니다. 모바일 기기 등에서 AI 결과를 보고 싶으시다면 [연결 설정]에 ngrok 등의 보안 HTTPS 주소를 연동해 주십시오.";
-    }
-    
-    var errorHtml = '<div class="ai-opinion-card" style="margin-top:18px; background:rgba(255, 74, 90, 0.05); border:1px solid rgba(255, 74, 90, 0.25); border-radius:12px; padding:16px;">' +
-                    '  <h3 style="margin:0; border-bottom:none; display:flex; justify-content:space-between; align-items:center; font-size:14px; color:var(--text-main); font-weight:700; padding-bottom: 0;">' +
-                    '    <span style="display:flex; align-items:center; gap:6px;">🧠 로컬 AI (Hermes-3) 분석 의견</span>' +
-                    '    <span class="badge g-dead" style="padding:2px 8px; font-size:10.5px;">오프라인 또는 차단됨</span>' +
-                    '  </h3>' +
-                    '  <p style="font-size:12.5px; line-height:1.6; color:#ff8a92; margin-top:8px;">' + reason + '</p>' +
-                    '</div>';
-    
-    var section = document.getElementById("aiOpinionSection");
-    if (section) {
-      section.innerHTML = errorHtml;
-    }
-    return;
-  }
-
   var changeRate = 0.0;
   var tickerKey = "KRW-" + m.symbol.toUpperCase();
   if (tickerByMarket[tickerKey]) {
@@ -2369,14 +2346,16 @@ function triggerAIOpinionRequest(m, profile) {
   })
   .catch(function(err) {
     clearTimeout(timeoutId);
-    var errMsg = "로컬 퀀트 서버(server.py)와 연결을 실패하여 실시간 Hermes-3 오피니언을 로드하지 못했습니다.";
+    var errMsg = "로컬 퀀트 서버(server.py)와 연결을 실패하여 실시간 Hermes-3 오피니언을 로드하지 못했습니다. PC의 터미널에서 server.py 실행 상태 및 Serveo 터널 루프를 점검해 주십시오.";
     if (err.name === 'AbortError') {
       errMsg = "로컬 AI 추론 응답 대기 시간(45초)을 초과했습니다. Ollama의 Hermes-3 기동 상태 및 사양을 점검해 주십시오.";
+    } else if (window.location.protocol === "https:" && API_BASE.indexOf("http://") === 0) {
+      errMsg = "현재 보안 연결(HTTPS) 환경입니다. 브라우저 보안 정책(Mixed Content)으로 인해 비보안 로컬 API(http://localhost:5000 등) 직접 연결이 차단됩니다. 모바일 기기 등에서 AI 결과를 보고 싶으시다면 [연결 설정]에 ngrok 또는 Serveo 등의 보안 HTTPS 주소를 연동해 주십시오.";
     }
     var errorHtml = '<div class="ai-opinion-card" style="margin-top:18px; background:rgba(255, 74, 90, 0.05); border:1px solid rgba(255, 74, 90, 0.25); border-radius:12px; padding:16px;">' +
                     '  <h3 style="margin:0; border-bottom:none; display:flex; justify-content:space-between; align-items:center; font-size:14px; color:var(--text-main); font-weight:700; padding-bottom: 0;">' +
                     '    <span style="display:flex; align-items:center; gap:6px;">🧠 로컬 AI (Hermes-3) 분석 의견</span>' +
-                    '    <span class="badge g-dead" style="padding:2px 8px; font-size:10.5px;">추론 지연 또는 실패</span>' +
+                    '    <span class="badge g-dead" style="padding:2px 8px; font-size:10.5px;">오프라인 또는 차단됨</span>' +
                     '  </h3>' +
                     '  <p style="font-size:12.5px; line-height:1.6; color:#ff8a92; margin-top:8px;">' + errMsg + '</p>' +
                     '</div>';
