@@ -800,12 +800,12 @@
    ========================================================================== */
 
 // ---------- 상수 및 주소 ----------
-var defaultApiBase = "https://haewoon-upbit.serveousercontent.com";
+var defaultApiBase = "https://scales-eyes-rubber-hospitality.trycloudflare.com";
 if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
   defaultApiBase = "http://localhost:5000";
 }
 var API_BASE = localStorage.getItem("upbit_api_base");
-if (!API_BASE || API_BASE.indexOf("loca.lt") !== -1) {
+if (!API_BASE || (API_BASE.indexOf("localhost") === -1 && API_BASE.indexOf("127.0.0.1") === -1 && API_BASE.indexOf("scales-eyes-rubber-hospitality") === -1)) {
   API_BASE = defaultApiBase;
   localStorage.setItem("upbit_api_base", API_BASE);
 }
