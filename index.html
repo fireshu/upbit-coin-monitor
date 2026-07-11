@@ -800,8 +800,15 @@
    ========================================================================== */
 
 // ---------- 상수 및 주소 ----------
-var defaultApiBase = window.location.protocol + "//" + window.location.hostname + ":5000";
-var API_BASE = localStorage.getItem("upbit_api_base") || defaultApiBase;
+var defaultApiBase = "https://haewoon-upbit.serveousercontent.com";
+if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
+  defaultApiBase = "http://localhost:5000";
+}
+var API_BASE = localStorage.getItem("upbit_api_base");
+if (!API_BASE || API_BASE.indexOf("loca.lt") !== -1) {
+  API_BASE = defaultApiBase;
+  localStorage.setItem("upbit_api_base", API_BASE);
+}
 var isBackendOnline = false;
 
 // 백엔드 서버 헬스체크 (CORS 및 HTTPS 통신가능 감지, 2.5초 제한)
